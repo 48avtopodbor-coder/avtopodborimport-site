@@ -15,6 +15,7 @@ interface Car {
   city: string;
   photos: string | null;
   images: string | null;
+  local_photo: string | null;
 }
 
 function getFirstPhoto(car: Car): string | null {
@@ -66,7 +67,7 @@ export default async function UsedCatalogPage({
   const [carsResult, countResult, brandsResult] = await Promise.all([
     pool.query(
       `SELECT listing_id, brand_ru, model, year, mileage_km, price_cny,
-              fuel, gearbox, color, city, photos, images
+              fuel, gearbox, color, city, photos, images, local_photo
        FROM cars WHERE ${where}
        ORDER BY scraped_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
@@ -145,7 +146,12 @@ export default async function UsedCatalogPage({
           <div className="flex-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {cars.map((car) => {
-                const photo = getFirstPhoto(car);
+                const remotePhoto = getFirstPhoto(car);
+                const photoSrc = car.local_photo
+                  ? car.local_photo
+                  : remotePhoto
+                  ? `/api/img?url=${encodeURIComponent(remotePhoto)}`
+                  : null;
                 return (
                   <Link
                     key={car.listing_id}
@@ -154,9 +160,9 @@ export default async function UsedCatalogPage({
                   >
                     {/* Фото */}
                     <div className="relative h-44 bg-graphite-700">
-                      {photo ? (
+                      {photoSrc ? (
                         <img
-                          src={`/api/img?url=${encodeURIComponent(photo)}`}
+                          src={photoSrc}
                           alt={`${car.brand_ru} ${car.model}`}
                           className="w-full h-full object-cover"
                         />
