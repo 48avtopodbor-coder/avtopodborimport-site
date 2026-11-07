@@ -1,18 +1,5 @@
 import type { Metadata } from "next";
-import { Unbounded, Manrope } from "next/font/google";
 import "./globals.css";
-
-const unbounded = Unbounded({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-unbounded",
-  display: "swap",
-});
-
-const manrope = Manrope({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-manrope",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "AVTOPODBOR IMPORT — Авто из Китая под ключ",
@@ -32,10 +19,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="ru"
-      className={`${unbounded.variable} ${manrope.variable}`}
-    >
+    <html lang="ru">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&family=Manrope:wght@200..800&display=swap&subset=cyrillic,latin"
+          rel="stylesheet"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
