@@ -7,9 +7,10 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - /opt/avtopodborimport/.env
     environment:
       - NODE_ENV=production
-      # Добавим DATABASE_URL и другие переменные позже
     networks:
       - avtopodbor
 
