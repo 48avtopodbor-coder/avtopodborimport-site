@@ -20,6 +20,9 @@ export async function GET(request: NextRequest) {
     "img.che168.com",
     "imgcdn.che168.com",
     "pic.che168.com",
+    "autoimg.cn",
+    "2sc2.autoimg.cn",
+    "x0.autoimg.cn",
   ];
   const isAllowed = allowedHosts.some(
     (h) => parsed.hostname === h || parsed.hostname.endsWith("." + h)
