@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-unbounded: "Unbounded", sans-serif;
+  --font-manrope: "Manrope", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-graphite-900 text-white font-body antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-heading;
+  }
+}
+
+@layer utilities {
+  /* Оранжевый градиент для акцентов */
+  .text-gradient-orange {
+    @apply bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent;
+  }
+
+  /* Тонкая оранжевая линия-разделитель */
+  .divider-orange {
+    @apply border-t border-orange-500/20;
+  }
+}
