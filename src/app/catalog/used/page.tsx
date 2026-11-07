@@ -156,7 +156,7 @@ export default async function UsedCatalogPage({
                     <div className="relative h-44 bg-graphite-700">
                       {photo ? (
                         <img
-                          src={photo}
+                          src={`/api/img?url=${encodeURIComponent(photo)}`}
                           alt={`${car.brand_ru} ${car.model}`}
                           className="w-full h-full object-cover"
                         />
