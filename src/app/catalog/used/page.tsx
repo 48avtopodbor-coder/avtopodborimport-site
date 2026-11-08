@@ -18,6 +18,13 @@ interface Car {
   local_photo: string | null;
 }
 
+function cleanModel(model: string): string {
+  return model
+    .replace(/[一-鿿㐀-䶿]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getFirstPhoto(car: Car): string | null {
   try {
     if (car.photos) {
@@ -178,7 +185,7 @@ export default async function UsedCatalogPage({
                     {/* Инфо */}
                     <div className="p-3">
                       <div className="font-heading font-bold text-white text-sm mb-1">
-                        {car.brand_ru} {car.model}
+                        {car.brand_ru} {cleanModel(car.model)}
                       </div>
                       <div className="flex gap-3 text-xs text-gray-400 font-body mb-2">
                         <span>{car.year}</span>

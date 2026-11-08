@@ -29,6 +29,14 @@ interface Spec {
   tires: string | null;
 }
 
+// Убирает китайские иероглифы, оставляет латиницу, цифры, знаки
+function cleanModel(model: string): string {
+  return model
+    .replace(/[一-鿿㐀-䶿]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function getPhotos(car: Car): string[] {
   const urls: string[] = [];
   try {
@@ -121,7 +129,7 @@ export default async function CarPage({
             Авто с пробегом
           </Link>
           <span>/</span>
-          <span className="text-gray-300">{car.brand_ru} {car.model}</span>
+          <span className="text-gray-300">{car.brand_ru} {cleanModel(car.model)}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -166,7 +174,7 @@ export default async function CarPage({
           {/* Основная информация */}
           <div>
             <h1 className="font-heading font-bold text-2xl text-white mb-1">
-              {car.brand_ru} {car.model}
+              {car.brand_ru} {cleanModel(car.model)}
             </h1>
             <p className="text-gray-400 font-body text-sm mb-6">
               {car.year} · {car.city}
