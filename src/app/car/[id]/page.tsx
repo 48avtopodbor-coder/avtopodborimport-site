@@ -20,8 +20,13 @@ interface Car {
 }
 
 interface Spec {
-  spec_name: string;
-  spec_value: string;
+  fuel: string | null;
+  drive: string | null;
+  gearbox: string | null;
+  power_hp: number | null;
+  engine_ml: number | null;
+  params_text: string | null;
+  tires: string | null;
 }
 
 function getPhotos(car: Car): string[] {
@@ -59,7 +64,8 @@ export default async function CarPage({
       [id]
     ),
     pool.query(
-      `SELECT spec_name, spec_value FROM specs WHERE listing_id = $1 ORDER BY spec_name`,
+      `SELECT fuel, drive, gearbox, power_hp, engine_ml, params_text, tires
+       FROM specs WHERE spec_id = $1`,
       [id]
     ),
   ]);
@@ -67,7 +73,7 @@ export default async function CarPage({
   if (carResult.rows.length === 0) notFound();
 
   const car: Car = carResult.rows[0];
-  const specs: Spec[] = specsResult.rows;
+  const spec: Spec | null = specsResult.rows[0] ?? null;
   const remotePhotos = getPhotos(car);
 
   // Список фото для показа: локальное первым, потом остальные через прокси
@@ -202,7 +208,7 @@ export default async function CarPage({
         </div>
 
         {/* Технические характеристики */}
-        {specs.length > 0 && (
+        {spec && (
           <div className="mt-10">
             <h2 className="font-heading font-bold text-lg text-white mb-4">
               Технические характеристики
@@ -210,19 +216,26 @@ export default async function CarPage({
             <div className="bg-graphite-800 rounded-xl overflow-hidden">
               <table className="w-full">
                 <tbody>
-                  {specs.map((spec, i) => (
-                    <tr
-                      key={spec.spec_name}
-                      className={i % 2 === 0 ? "bg-white/0" : "bg-white/[0.02]"}
-                    >
-                      <td className="px-5 py-3 text-gray-400 font-body text-sm w-1/2 border-b border-white/5">
-                        {spec.spec_name}
-                      </td>
-                      <td className="px-5 py-3 text-white font-body text-sm border-b border-white/5">
-                        {spec.spec_value}
-                      </td>
-                    </tr>
-                  ))}
+                  {[
+                    { label: "Топливо", value: spec.fuel },
+                    { label: "Привод", value: spec.drive },
+                    { label: "КПП", value: spec.gearbox },
+                    { label: "Мощность", value: spec.power_hp ? `${spec.power_hp} л.с.` : null },
+                    { label: "Объём двигателя", value: spec.engine_ml ? `${spec.engine_ml} мл` : null },
+                    { label: "Шины", value: spec.tires },
+                    { label: "Параметры", value: spec.params_text },
+                  ]
+                    .filter(({ value }) => value)
+                    .map(({ label, value }, i) => (
+                      <tr key={label} className={i % 2 === 0 ? "bg-white/0" : "bg-white/[0.02]"}>
+                        <td className="px-5 py-3 text-gray-400 font-body text-sm w-1/2 border-b border-white/5">
+                          {label}
+                        </td>
+                        <td className="px-5 py-3 text-white font-body text-sm border-b border-white/5">
+                          {value}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
