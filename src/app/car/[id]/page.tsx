@@ -13,6 +13,8 @@ interface Car {
   gearbox: string;
   color: string;
   city: string;
+  city_display: string;
+  distance_km: number | null;
   photos: string | null;
   images: string | null;
   local_photo: string | null;
@@ -66,9 +68,14 @@ export default async function CarPage({
 
   const [carResult, specsResult] = await Promise.all([
     pool.query(
-      `SELECT listing_id, brand_ru, model, year, mileage_km, price_cny,
-              fuel, gearbox, color, city, photos, images, local_photo, scraped_at
-       FROM cars WHERE listing_id = $1`,
+      `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
+              c.fuel, c.gearbox, c.color, c.city,
+              COALESCE(ct.city_ru, c.city) as city_display,
+              ct.distance_km,
+              c.photos, c.images, c.local_photo, c.scraped_at
+       FROM cars c
+       LEFT JOIN city_translations ct ON ct.city_cn = c.city
+       WHERE c.listing_id = $1`,
       [id]
     ),
     pool.query(
@@ -177,7 +184,10 @@ export default async function CarPage({
               {car.brand_ru} {cleanModel(car.model)}
             </h1>
             <p className="text-gray-400 font-body text-sm mb-6">
-              {car.year} · {car.city}
+              {car.year} · {car.city_display}
+              {car.distance_km && (
+                <span className="ml-2 text-gray-600">· {car.distance_km.toLocaleString("ru")} км до Хоргоса</span>
+              )}
             </p>
 
             {/* Цена */}
@@ -204,7 +214,7 @@ export default async function CarPage({
                 { label: "Топливо", value: car.fuel || "—" },
                 { label: "КПП", value: car.gearbox || "—" },
                 { label: "Цвет", value: car.color || "—" },
-                { label: "Город", value: car.city || "—" },
+                { label: "Город", value: car.city_display || "—" },
               ].map(({ label, value }) => (
                 <div key={label} className="bg-graphite-800 rounded-lg p-3">
                   <div className="text-gray-500 font-body text-xs mb-0.5">{label}</div>

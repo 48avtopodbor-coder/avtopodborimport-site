@@ -13,6 +13,7 @@ interface Car {
   gearbox: string;
   color: string;
   city: string;
+  city_display: string;
   photos: string | null;
   images: string | null;
   local_photo: string | null;
@@ -73,10 +74,14 @@ export default async function UsedCatalogPage({
 
   const [carsResult, countResult, brandsResult] = await Promise.all([
     pool.query(
-      `SELECT listing_id, brand_ru, model, year, mileage_km, price_cny,
-              fuel, gearbox, color, city, photos, images, local_photo
-       FROM cars WHERE ${where}
-       ORDER BY scraped_at DESC
+      `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
+              c.fuel, c.gearbox, c.color, c.city,
+              COALESCE(ct.city_ru, c.city) as city_display,
+              c.photos, c.images, c.local_photo
+       FROM cars c
+       LEFT JOIN city_translations ct ON ct.city_cn = c.city
+       WHERE ${where}
+       ORDER BY c.scraped_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       [...params, limit, offset]
     ),
@@ -195,7 +200,7 @@ export default async function UsedCatalogPage({
                       <div className="text-orange-400 font-heading font-bold text-sm">
                         {formatPrice(car.price_cny)}
                       </div>
-                      <div className="text-xs text-gray-500 font-body">{car.city}</div>
+                      <div className="text-xs text-gray-500 font-body">{car.city_display}</div>
                     </div>
                   </Link>
                 );
