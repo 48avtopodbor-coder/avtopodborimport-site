@@ -6,7 +6,9 @@ services:
     container_name: avtopodbor-web
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      # Только для nginx на этом же сервере. Без 127.0.0.1 Docker открывает
+      # порт в интернет в обход UFW.
+      - "127.0.0.1:3000:3000"
     env_file:
       - /opt/avtopodborimport/.env
     environment:
