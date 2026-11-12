@@ -78,9 +78,12 @@ export default async function CarPage({
        WHERE c.listing_id = $1`,
       [id]
     ),
+    // Комплектация связана с машиной через cars.spec_id, а не через номер объявления
     pool.query(
-      `SELECT fuel, drive, gearbox, power_hp, engine_ml, params_text, tires
-       FROM specs WHERE spec_id = $1`,
+      `SELECT s.fuel, s.drive, s.gearbox, s.power_hp, s.engine_ml, s.params_text, s.tires
+       FROM cars c
+       JOIN specs s ON s.spec_id = c.spec_id
+       WHERE c.listing_id = $1`,
       [id]
     ),
   ]);
@@ -209,13 +212,16 @@ export default async function CarPage({
             {/* Ключевые параметры */}
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Год", value: car.year || "—" },
-                { label: "Пробег", value: car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : "—" },
-                { label: "Топливо", value: car.fuel || "—" },
-                { label: "КПП", value: car.gearbox || "—" },
-                { label: "Цвет", value: car.color || "—" },
-                { label: "Город", value: car.city_display || "—" },
-              ].map(({ label, value }) => (
+                { label: "Год", value: car.year },
+                { label: "Пробег", value: car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : null },
+                // Своих данных у машины нет, пока не собрана карточка; тогда берём из комплектации
+                { label: "Топливо", value: car.fuel || spec?.fuel },
+                { label: "КПП", value: car.gearbox || spec?.gearbox },
+                { label: "Цвет", value: car.color },
+                { label: "Город", value: car.city_display },
+              ]
+                .filter(({ value }) => value)
+                .map(({ label, value }) => (
                 <div key={label} className="bg-graphite-800 rounded-lg p-3">
                   <div className="text-gray-500 font-body text-xs mb-0.5">{label}</div>
                   <div className="text-white font-body text-sm">{value}</div>

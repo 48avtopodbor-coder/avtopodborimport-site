@@ -57,16 +57,16 @@ export default async function UsedCatalogPage({
   const limit = 24;
   const offset = (page - 1) * limit;
 
-  const conditions: string[] = ["is_active = 1", "price_cny > 0"];
+  const conditions: string[] = ["c.is_active = 1", "c.price_cny > 0"];
   const params: (string | number)[] = [];
   let idx = 1;
 
   if (sp.brand) {
-    conditions.push(`brand_ru = $${idx++}`);
+    conditions.push(`c.brand_ru = $${idx++}`);
     params.push(sp.brand);
   }
   if (sp.fuel) {
-    conditions.push(`fuel = $${idx++}`);
+    conditions.push(`COALESCE(c.fuel, s.fuel) = $${idx++}`);
     params.push(sp.fuel);
   }
 
@@ -75,17 +75,22 @@ export default async function UsedCatalogPage({
   const [carsResult, countResult, brandsResult] = await Promise.all([
     pool.query(
       `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
-              c.fuel, c.gearbox, c.color, c.city,
+              COALESCE(c.fuel, s.fuel) AS fuel, COALESCE(c.gearbox, s.gearbox) AS gearbox,
+              c.color, c.city,
               COALESCE(ct.city_ru, c.city) as city_display,
               c.photos, c.images, c.local_photo
        FROM cars c
+       LEFT JOIN specs s ON s.spec_id = c.spec_id
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
        WHERE ${where}
        ORDER BY c.scraped_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
       [...params, limit, offset]
     ),
-    pool.query(`SELECT COUNT(*) FROM cars WHERE ${where}`, params),
+    pool.query(
+      `SELECT COUNT(*) FROM cars c LEFT JOIN specs s ON s.spec_id = c.spec_id WHERE ${where}`,
+      params
+    ),
     pool.query(
       `SELECT brand_ru, COUNT(*) as cnt FROM cars WHERE is_active=1 AND price_cny>0
        GROUP BY brand_ru ORDER BY cnt DESC LIMIT 20`
@@ -195,7 +200,7 @@ export default async function UsedCatalogPage({
                       <div className="flex gap-3 text-xs text-gray-400 font-body mb-2">
                         <span>{car.year}</span>
                         <span>{car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : "—"}</span>
-                        <span>{car.fuel || "—"}</span>
+                        {car.fuel && <span>{car.fuel}</span>}
                       </div>
                       <div className="text-orange-400 font-heading font-bold text-sm">
                         {formatPrice(car.price_cny)}
