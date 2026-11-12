@@ -1,6 +1,7 @@
 import pool from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { displayValue, firstDisplayValue } from "@/lib/format";
 
 interface Car {
   listing_id: string;
@@ -215,9 +216,9 @@ export default async function CarPage({
                 { label: "Год", value: car.year },
                 { label: "Пробег", value: car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : null },
                 // Своих данных у машины нет, пока не собрана карточка; тогда берём из комплектации
-                { label: "Топливо", value: car.fuel || spec?.fuel },
-                { label: "КПП", value: car.gearbox || spec?.gearbox },
-                { label: "Цвет", value: car.color },
+                { label: "Топливо", value: firstDisplayValue(car.fuel, spec?.fuel) },
+                { label: "КПП", value: firstDisplayValue(car.gearbox, spec?.gearbox) },
+                { label: "Цвет", value: displayValue(car.color) },
                 { label: "Город", value: car.city_display },
               ]
                 .filter(({ value }) => value)
@@ -241,13 +242,14 @@ export default async function CarPage({
               <table className="w-full">
                 <tbody>
                   {[
-                    { label: "Топливо", value: spec.fuel },
-                    { label: "Привод", value: spec.drive },
-                    { label: "КПП", value: spec.gearbox },
+                    { label: "Топливо", value: displayValue(spec.fuel) },
+                    { label: "Привод", value: displayValue(spec.drive) },
+                    { label: "КПП", value: displayValue(spec.gearbox) },
                     { label: "Мощность", value: spec.power_hp ? `${spec.power_hp} л.с.` : null },
                     { label: "Объём двигателя", value: spec.engine_ml ? `${spec.engine_ml} мл` : null },
-                    { label: "Шины", value: spec.tires },
-                    { label: "Параметры", value: spec.params_text },
+                    { label: "Шины", value: displayValue(spec.tires) },
+                    // Пока на китайском — скрываем; появится, когда сборщик начнёт переводить
+                    { label: "Параметры", value: displayValue(spec.params_text) },
                   ]
                     .filter(({ value }) => value)
                     .map(({ label, value }, i) => (

@@ -1,6 +1,7 @@
 import pool from "@/lib/db";
 import Link from "next/link";
 import Image from "next/image";
+import { firstDisplayValue } from "@/lib/format";
 
 interface Car {
   listing_id: string;
@@ -9,9 +10,10 @@ interface Car {
   year: number;
   mileage_km: number;
   price_cny: number;
-  fuel: string;
-  gearbox: string;
-  color: string;
+  fuel: string | null;
+  spec_fuel: string | null;
+  gearbox: string | null;
+  color: string | null;
   city: string;
   city_display: string;
   photos: string | null;
@@ -66,7 +68,7 @@ export default async function UsedCatalogPage({
     params.push(sp.brand);
   }
   if (sp.fuel) {
-    conditions.push(`COALESCE(c.fuel, s.fuel) = $${idx++}`);
+    conditions.push(`lower(COALESCE(c.fuel, s.fuel)) = lower($${idx++})`);
     params.push(sp.fuel);
   }
 
@@ -75,7 +77,7 @@ export default async function UsedCatalogPage({
   const [carsResult, countResult, brandsResult] = await Promise.all([
     pool.query(
       `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
-              COALESCE(c.fuel, s.fuel) AS fuel, COALESCE(c.gearbox, s.gearbox) AS gearbox,
+              c.fuel, s.fuel AS spec_fuel, COALESCE(c.gearbox, s.gearbox) AS gearbox,
               c.color, c.city,
               COALESCE(ct.city_ru, c.city) as city_display,
               c.photos, c.images, c.local_photo
@@ -200,7 +202,9 @@ export default async function UsedCatalogPage({
                       <div className="flex gap-3 text-xs text-gray-400 font-body mb-2">
                         <span>{car.year}</span>
                         <span>{car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : "—"}</span>
-                        {car.fuel && <span>{car.fuel}</span>}
+                        {firstDisplayValue(car.fuel, car.spec_fuel) && (
+                          <span>{firstDisplayValue(car.fuel, car.spec_fuel)}</span>
+                        )}
                       </div>
                       <div className="text-orange-400 font-heading font-bold text-sm">
                         {formatPrice(car.price_cny)}
