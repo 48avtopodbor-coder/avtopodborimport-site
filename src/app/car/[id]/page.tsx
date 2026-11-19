@@ -2,6 +2,7 @@ import pool from "@/lib/db";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { displayValue, firstDisplayValue } from "@/lib/format";
+import CarGallery from "@/components/car/CarGallery";
 
 interface Car {
   listing_id: string;
@@ -19,6 +20,7 @@ interface Car {
   photos: string | null;
   images: string | null;
   local_photo: string | null;
+  local_photo_2: string | null;
   scraped_at: string;
 }
 
@@ -73,7 +75,7 @@ export default async function CarPage({
               c.fuel, c.gearbox, c.color, c.city,
               COALESCE(ct.city_ru, c.city) as city_display,
               ct.distance_km,
-              c.photos, c.images, c.local_photo, c.scraped_at
+              c.photos, c.images, c.local_photo, c.local_photo_2, c.scraped_at
        FROM cars c
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
        WHERE c.listing_id = $1`,
@@ -95,18 +97,17 @@ export default async function CarPage({
   const spec: Spec | null = specsResult.rows[0] ?? null;
   const remotePhotos = getPhotos(car);
 
-  // Список фото для показа: локальное первым, потом остальные через прокси
+  // Локальные копии отдаются с сайта без ожидания китайского сервера.
+  // Пока обложки нет, сохраняем прежний прокси-fallback.
   const photoSrcs: string[] = [];
   if (car.local_photo) {
     photoSrcs.push(car.local_photo);
+    if (car.local_photo_2) photoSrcs.push(car.local_photo_2);
+  } else {
+    remotePhotos.slice(0, 2).forEach((url) => {
+      photoSrcs.push(`/api/img?url=${encodeURIComponent(url)}`);
+    });
   }
-  remotePhotos.forEach((url, i) => {
-    // Если локальное есть — первое уже добавлено, пропускаем его дубль
-    if (car.local_photo && i === 0) return;
-    photoSrcs.push(`/api/img?url=${encodeURIComponent(url)}`);
-  });
-
-  const mainPhoto = photoSrcs[0] ?? null;
 
   return (
     <div className="min-h-screen bg-graphite-900">
@@ -145,42 +146,11 @@ export default async function CarPage({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Фото */}
-          <div>
-            <div className="relative aspect-[4/3] bg-graphite-800 rounded-xl overflow-hidden mb-3">
-              {mainPhoto ? (
-                <img
-                  src={mainPhoto}
-                  alt={`${car.brand_ru} ${car.model}`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-600">
-                  <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              )}
-            </div>
-
-            {/* Миниатюры */}
-            {photoSrcs.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {photoSrcs.slice(0, 8).map((src, i) => (
-                  <div
-                    key={i}
-                    className="shrink-0 w-20 h-16 bg-graphite-800 rounded-lg overflow-hidden"
-                  >
-                    <img
-                      src={src}
-                      alt=""
-                      className="w-full h-full object-cover opacity-70 hover:opacity-100 transition-opacity"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <CarGallery
+            key={car.listing_id}
+            photos={photoSrcs}
+            alt={`${car.brand_ru} ${car.model}`}
+          />
 
           {/* Основная информация */}
           <div>

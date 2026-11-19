@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
-"""Обложки для каталога: первое фото каждой машины в продаже.
+"""Локальные первые два фото машин в продаже.
 
-Новый сервер не может подключиться ни к одному серверу в Китае (проверено 12.11:
-ни к фото che168, ни к baidu.com), а старый хостинг может. Поэтому фото скачивает
-хостинг: по ssh туда уходит небольшая программа на Python со списком ссылок,
-а фото возвращаются по тому же соединению одним потоком (архив tar).
-На хостинге ничего не сохраняется и не устанавливается.
+Новый сервер не может подключиться к серверам фото в Китае, а старый хостинг
+может. Поэтому хостинг последовательно получает изображения и передаёт их
+обратно по SSH одним потоком tar. На хостинге ничего не сохраняется.
 
-Фото скачиваются по одному, с паузой, без подмены заголовков. Если che168
-отказывает (403 или 429 несколько раз подряд), запуск останавливается,
-и следующие два часа фото не скачиваются: ограничения не обходим.
+Запросы идут по одному, с паузой. После нескольких подряд отказов Che168 запуск
+останавливается, и следующие два часа фото не запрашиваются: ограничения не обходим.
 
-Куда: /opt/avtopodborimport/photos/<номер объявления>.webp (nginx отдаёт их
-по адресу /photos/), в базе сайта у машины заполняется local_photo.
-Сначала самые свежие машины, как в каталоге.
+Первое фото сохраняется как <номер объявления>.<расширение>, второе — как
+<номер объявления>_2.<расширение>. Nginx отдаёт их из /photos/; в PostgreSQL
+сохраняются local_photo и local_photo_2.
 
-Где работает: сервер Timeweb Cloud, файл /opt/avtopodborimport/fetch_photos.py.
-Запуск от root (нужны ssh hosting и запись в папку фото):
-    python3 /opt/avtopodborimport/fetch_photos.py             # до 2000 фото, не дольше 40 минут
+Запуск на сервере Timeweb Cloud от root:
+    python3 /opt/avtopodborimport/fetch_photos.py             # до 2000 фото, до 40 минут
     python3 /opt/avtopodborimport/fetch_photos.py --limit 30  # пробный запуск
     python3 /opt/avtopodborimport/fetch_photos.py --dry-run   # только посчитать
 """
@@ -38,57 +34,66 @@ from datetime import datetime
 PHOTOS_DIR = os.environ.get("PHOTOS_DIR", "/opt/avtopodborimport/photos")
 DB_NAME = os.environ.get("PHOTOS_DB", "avtopodborimport")
 LOCK_PATH = os.environ.get("PHOTOS_LOCK", "/tmp/fetch_photos.lock")
-# Здесь хранится время, до которого не скачиваем после отказа che168
 COOLDOWN_PATH = os.environ.get("PHOTOS_COOLDOWN", "/srv/che168/photos_cooldown")
 COOLDOWN_HOURS = 2
-# Машины, у которых фото не скачалось (нет такого, не картинка): сутки их не трогаем,
-# иначе они каждый час стояли бы первыми в очереди
 FAILED_PATH = os.environ.get("PHOTOS_FAILED", "/srv/che168/photos_failed.json")
 FAILED_HOURS = 24
 
-# Программа для хостинга приходит на стандартный ввод Python.
-# Если python3 нет в PATH, берём Python сборщика.
+# Скрипт на хостинге работает только со стандартной библиотекой.
 REMOTE_SHELL = 'exec "$(command -v python3 || echo "$HOME/che168/.venv/bin/python")" -u -'
 SSH_CMD = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20",
            "-o", "ServerAliveInterval=30", "hosting", REMOTE_SHELL]
-# Для проверки на другом компьютере: PHOTOS_FETCH_CMD="python3 -u -"
 FETCH_CMD = shlex.split(os.environ["PHOTOS_FETCH_CMD"]) if os.environ.get("PHOTOS_FETCH_CMD") else SSH_CMD
 
-MAX_BYTES = 3 * 1024 * 1024  # обложка обычно 20–40 КБ
-MAX_REFUSED = 3  # столько отказов che168 подряд — и стоп
-SAVE_EVERY = 200  # как часто записывать готовые фото в базу
+MAX_BYTES = 3 * 1024 * 1024
+MAX_REFUSED = 3
+SAVE_EVERY = 200
 
 ID_RE = re.compile(r"^[0-9A-Za-z_-]{1,40}$")
 URL_RE = re.compile(r"^https://[0-9a-z.-]+\.autoimg\.cn/[^\s\"'\\]+$")
 
-# Машины в продаже без обложки, первое фото из photos (или images), сначала свежие
-COUNT_SQL = "SELECT count(*) FROM cars WHERE is_active = 1 AND price_cny > 0 AND local_photo IS NULL;"
-CANDIDATES_SQL = """
-SELECT listing_id, url FROM (
-  SELECT listing_id::text AS listing_id, scraped_at,
+# На каждую машину берём максимум два исходных URL, в порядке главного и второго фото.
+PHOTO_SOURCES_SQL = """
+WITH source AS (
+  SELECT listing_id::text AS listing_id, scraped_at, local_photo, local_photo_2,
          COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>0 END,
-                  CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>0 END) AS url
+                  CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>0 END) AS first_url,
+         COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>1 END,
+                  CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>1 END) AS second_url
   FROM cars
-  WHERE is_active = 1 AND price_cny > 0 AND local_photo IS NULL
-) t
-WHERE url IS NOT NULL
-ORDER BY scraped_at DESC
+  WHERE is_active = 1 AND price_cny > 0
+)
+"""
+COUNT_SQL = PHOTO_SOURCES_SQL + """
+SELECT count(*)
+FROM source
+CROSS JOIN LATERAL (VALUES (1, first_url, local_photo), (2, second_url, local_photo_2))
+  AS photo(photo_index, url, local_path)
+WHERE url IS NOT NULL AND local_path IS NULL;
+"""
+CANDIDATES_SQL = PHOTO_SOURCES_SQL + """
+SELECT listing_id, photo_index, url
+FROM source
+CROSS JOIN LATERAL (VALUES (1, first_url, local_photo), (2, second_url, local_photo_2))
+  AS photo(photo_index, url, local_path)
+WHERE url IS NOT NULL AND local_path IS NULL
+ORDER BY scraped_at DESC, photo_index ASC
 LIMIT %d;
 """
 ON_SALE_SQL = """
-SELECT count(*) FILTER (WHERE local_photo IS NOT NULL) || ' из ' || count(*)
+SELECT count(*) FILTER (WHERE local_photo IS NOT NULL) || '|' ||
+       count(*) FILTER (WHERE local_photo_2 IS NOT NULL) || '|' || count(*)
 FROM cars WHERE is_active = 1 AND price_cny > 0;
 """
 
 STOP_TEXT = {
     "done": "список закончился",
     "timeout": "вышло время",
-    "refused": "che168 отказывает",
+    "refused": "Che168 отказывает",
     "no-connection": "нет связи с сервером фото",
 }
 
-# Эта часть выполняется на хостинге. Только стандартная библиотека,
-# без f-строк: версия Python там может быть старой.
+# Этот код исполняется на старом хостинге; используем только стандартную библиотеку.
 REMOTE_CODE = r'''
 import http.client, io, json, sys, tarfile, time
 from urllib.parse import urlsplit
@@ -98,7 +103,6 @@ REFUSED = (403, 429, 514)
 
 
 def fetch(conns, host, path, max_bytes):
-    # Одно фото; соединение с сервером фото держим открытым между запросами
     for attempt in (1, 2):
         conn = conns.get(host)
         if conn is None:
@@ -132,7 +136,8 @@ def main(params):
     conns = {}
     stats = {"ok": 0, "errors": 0, "refused": 0, "stop": "done", "examples": [], "failed": []}
     refused_row = errors_row = 0
-    for listing_id, url in p["items"]:
+    for listing_id, photo_index, url in p["items"]:
+        label = "%s:%s" % (listing_id, photo_index)
         if time.time() > deadline:
             stats["stop"] = "timeout"
             break
@@ -140,11 +145,12 @@ def main(params):
         host = u.hostname or ""
         if u.scheme != "https" or not host.endswith(".autoimg.cn"):
             stats["errors"] += 1
+            stats["failed"].append(label)
             continue
         path = u.path + ("?" + u.query if u.query else "")
         status, body, ctype = fetch(conns, host, path, p["max_bytes"])
         if status == 200 and body and len(body) <= p["max_bytes"] and ctype.startswith("image/"):
-            info = tarfile.TarInfo(listing_id)
+            info = tarfile.TarInfo("%s__p%s" % (listing_id, photo_index))
             info.size = len(body)
             info.mtime = int(time.time())
             out.addfile(info, io.BytesIO(body))
@@ -155,21 +161,19 @@ def main(params):
             refused_row += 1
             if refused_row >= p["max_refused"]:
                 stats["stop"] = "refused"
-                stats["examples"].append("%s: %s" % (listing_id, status))
+                stats["examples"].append("%s: %s" % (label, status))
                 break
         else:
             stats["errors"] += 1
             if len(stats["examples"]) < 3:
-                stats["examples"].append("%s: %s %s" % (listing_id, status, ctype))
+                stats["examples"].append("%s: %s %s" % (label, status, ctype))
             if status is None:
-                # Нет ответа сервера фото: подряд 20 раз — значит, нет связи
                 errors_row += 1
                 if errors_row >= 20:
                     stats["stop"] = "no-connection"
                     break
             else:
-                # Ответ есть, но фото не годится (нет такого, не картинка, слишком большое)
-                stats["failed"].append(listing_id)
+                stats["failed"].append(label)
                 errors_row = 0
         time.sleep(p["pause"])
     out.close()
@@ -194,27 +198,39 @@ def psql(sql):
 
 
 def save(rows):
-    """Записывает local_photo готовым машинам."""
+    """Записывает готовые пути в соответствующее поле PostgreSQL."""
     if not rows:
         return
-    values = ",".join(f"('{lid}','{path}')" for lid, path in rows)
+    values = ",".join(f"('{lid}',{photo_index},'{path}')" for lid, photo_index, path in rows)
     psql(
-        f"UPDATE cars SET local_photo = v.p FROM (VALUES {values}) AS v(id, p) "
-        f"WHERE cars.listing_id::text = v.id AND cars.local_photo IS NULL;"
+        "WITH v(id, photo_index, p) AS (VALUES " + values + "), "
+        "photos AS (SELECT id, "
+        "max(p) FILTER (WHERE photo_index = 1) AS first_path, "
+        "max(p) FILTER (WHERE photo_index = 2) AS second_path "
+        "FROM v GROUP BY id) "
+        "UPDATE cars SET "
+        "local_photo = COALESCE(cars.local_photo, photos.first_path), "
+        "local_photo_2 = COALESCE(cars.local_photo_2, photos.second_path) "
+        "FROM photos WHERE cars.listing_id::text = photos.id "
+        "AND (cars.local_photo IS NULL OR cars.local_photo_2 IS NULL);"
     )
 
 
-def existing(listing_id):
-    """Фото уже лежит в папке (например, после прерванного запуска)."""
+def photo_suffix(photo_index):
+    return "" if photo_index == 1 else "_2"
+
+
+def existing(listing_id, photo_index):
+    """Путь, если файл уже скачан, например при прерванном запуске."""
+    stem = listing_id + photo_suffix(photo_index)
     for ext in (".webp", ".jpg", ".png"):
-        path = os.path.join(PHOTOS_DIR, listing_id + ext)
+        path = os.path.join(PHOTOS_DIR, stem + ext)
         if os.path.isfile(path) and os.path.getsize(path) > 0:
-            return "/photos/" + listing_id + ext
+            return "/photos/" + stem + ext
     return None
 
 
 def image_ext(data):
-    """Тип файла по первым байтам: в папку фото попадают только картинки."""
     if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
         return ".webp"
     if data[:3] == b"\xff\xd8\xff":
@@ -224,14 +240,19 @@ def image_ext(data):
     return None
 
 
-def write_photo(listing_id, ext, data):
-    final = os.path.join(PHOTOS_DIR, listing_id + ext)
+def write_photo(listing_id, photo_index, ext, data):
+    stem = listing_id + photo_suffix(photo_index)
+    final = os.path.join(PHOTOS_DIR, stem + ext)
     tmp = final + ".part"
     with open(tmp, "wb") as f:
         f.write(data)
     os.chmod(tmp, 0o644)
     os.replace(tmp, final)
-    return "/photos/" + listing_id + ext
+    return "/photos/" + stem + ext
+
+
+def failure_key(listing_id, photo_index):
+    return f"{listing_id}:{photo_index}"
 
 
 def cooldown_until():
@@ -249,7 +270,13 @@ def load_failed():
     except (OSError, ValueError):
         return {}
     fresh = time.time() - FAILED_HOURS * 3600
-    return {k: v for k, v in data.items() if isinstance(v, (int, float)) and v > fresh}
+    result = {k: v for k, v in data.items() if isinstance(v, (int, float)) and v > fresh}
+    # Совместимость со старым кэшем, где ключом был только номер машины.
+    for key, value in list(result.items()):
+        if ":" not in key:
+            result[f"{key}:1"] = value
+            del result[key]
+    return result
 
 
 def save_failed(failed):
@@ -260,13 +287,15 @@ def save_failed(failed):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Обложки машин через старый хостинг")
-    ap.add_argument("--limit", type=int, default=2000, help="сколько машин за запуск (2000)")
+    ap = argparse.ArgumentParser(description="Первые два фото машин через старый хостинг")
+    ap.add_argument("--limit", type=int, default=2000, help="сколько фото за запуск (2000)")
     ap.add_argument("--minutes", type=float, default=40, help="не дольше стольких минут (40)")
     ap.add_argument("--pause", type=float, default=0.3, help="пауза между фото, с (0.3)")
     ap.add_argument("--dry-run", action="store_true", help="только посчитать, ничего не скачивать")
     args = ap.parse_args()
 
+    if args.limit < 1 or args.minutes <= 0 or args.pause < 0:
+        ap.error("limit должен быть больше 0, minutes — больше 0, pause — не меньше 0")
     if os.geteuid() != 0 and "PHOTOS_FETCH_CMD" not in os.environ:
         sys.exit("запускать от root: нужны ssh hosting и запись в папку фото")
 
@@ -280,39 +309,41 @@ def main():
     pause_till = cooldown_until()
     if time.time() < pause_till and not args.dry_run:
         till = datetime.fromtimestamp(pause_till).strftime("%H:%M")
-        print(f"{now()} пауза после отказа che168 до {till}, пропуск")
+        print(f"{now()} пауза после отказа Che168 до {till}, пропуск")
         return
 
     missing = int(psql(COUNT_SQL).strip() or 0)
     failed = load_failed()
     have, todo, skipped = [], [], 0
     for line in psql(CANDIDATES_SQL % (args.limit + len(failed))).splitlines():
-        listing_id, _, url = line.partition("|")
+        listing_id, photo_index, url = line.split("|", 2)
+        photo_index = int(photo_index)
         if url.startswith("//"):
             url = "https:" + url
         elif url.startswith("http://"):
             url = "https://" + url[7:]
-        if not ID_RE.match(listing_id) or not URL_RE.match(url):
+        if not ID_RE.match(listing_id) or photo_index not in (1, 2) or not URL_RE.match(url):
             continue
-        if listing_id in failed:
+        key = failure_key(listing_id, photo_index)
+        if key in failed:
             skipped += 1
             continue
         if len(have) + len(todo) >= args.limit:
             break
-        path = existing(listing_id)
+        path = existing(listing_id, photo_index)
         if path:
-            have.append((listing_id, path))
+            have.append((listing_id, photo_index, path))
         else:
-            todo.append((listing_id, url))
-    print(f"{now()} обложки: без фото {missing}, в этом запуске {len(have) + len(todo)}, "
-          f"файл уже есть у {len(have)}, скачать {len(todo)}"
+            todo.append((listing_id, photo_index, url))
+    print(f"{now()} первые два фото: без локального файла {missing}, "
+          f"в очереди {len(have) + len(todo)}, файл уже есть у {len(have)}, скачать {len(todo)}"
           + (f", отложено после неудачи {skipped}" if skipped else ""), flush=True)
 
     if args.dry_run:
         if todo:
-            print(f"первое в очереди: {todo[0][0]} {todo[0][1]}")
+            print(f"первое в очереди: {todo[0][0]} фото {todo[0][1]} {todo[0][2]}")
         if time.time() < pause_till:
-            print(f"сейчас пауза после отказа che168 до {datetime.fromtimestamp(pause_till):%H:%M}")
+            print(f"сейчас пауза после отказа Che168 до {datetime.fromtimestamp(pause_till):%H:%M}")
         print("проверка: ok, ничего не скачано и не записано")
         return
 
@@ -328,7 +359,6 @@ def main():
     })
     errlog = tempfile.TemporaryFile()
     proc = subprocess.Popen(FETCH_CMD, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errlog)
-    # Страховка от зависшего соединения
     watchdog = threading.Timer(args.minutes * 60 + 180, proc.kill)
     watchdog.daemon = True
     watchdog.start()
@@ -338,23 +368,26 @@ def main():
     except BrokenPipeError:
         pass
 
-    wanted = dict(todo)
+    wanted = {f"{listing_id}__p{photo_index}": (listing_id, photo_index)
+              for listing_id, photo_index, _ in todo}
     done, pending, rejected, stream_error = [], [], [], None
     try:
         with tarfile.open(fileobj=proc.stdout, mode="r|") as tf:
             for member in tf:
                 if member.name == ".start":
                     continue
-                listing_id = member.name
-                if listing_id not in wanted or not member.isfile() or member.size > MAX_BYTES:
+                target = wanted.get(member.name)
+                if target is None or not member.isfile() or member.size > MAX_BYTES:
                     continue
                 data = tf.extractfile(member).read()
                 ext = image_ext(data)
                 if not ext:
-                    rejected.append(listing_id)
+                    rejected.append(failure_key(*target))
                     continue
-                pending.append((listing_id, write_photo(listing_id, ext, data)))
-                done.append(listing_id)
+                listing_id, photo_index = target
+                pending.append((listing_id, photo_index,
+                                write_photo(listing_id, photo_index, ext, data)))
+                done.append(target)
                 if len(pending) >= SAVE_EVERY:
                     save(pending)
                     pending = []
@@ -379,7 +412,7 @@ def main():
         tail = " | ".join(err_lines[-3:]) or stream_error or "нет ответа"
         print(f"{now()} хостинг не прислал итог: {tail}")
     else:
-        print(f"на хостинге: скачано {stats['ok']}, ошибок {stats['errors']}, отказов che168 {stats['refused']}; "
+        print(f"на хостинге: скачано {stats['ok']}, ошибок {stats['errors']}, отказов Che168 {stats['refused']}; "
               f"остановка — {STOP_TEXT.get(stats['stop'], stats['stop'])}")
         if stats["examples"]:
             print("примеры: " + "; ".join(stats["examples"]))
@@ -387,16 +420,22 @@ def main():
             with open(COOLDOWN_PATH, "w") as f:
                 f.write(str(time.time() + COOLDOWN_HOURS * 3600))
             print(f"следующие {COOLDOWN_HOURS} ч фото не скачиваем")
-    bad = [i for i in (stats or {}).get("failed", []) + rejected if i in wanted]
+    candidate_keys = {failure_key(listing_id, photo_index)
+                      for listing_id, photo_index, _ in todo}
+    bad = [key for key in (stats or {}).get("failed", []) + rejected if key in candidate_keys]
     if bad:
-        failed.update({i: time.time() for i in bad})
+        failed.update({key: time.time() for key in bad})
         save_failed(failed)
     if stream_error and stats is not None:
         print(f"поток прервался: {stream_error}")
-    on_sale = psql(ON_SALE_SQL).strip()
-    print(f"{now()} готово за {time.time() - started:.0f} с: сохранено {len(done)}"
-          + (f", не годится {len(bad)} (отложены на {FAILED_HOURS} ч)" if bad else "")
-          + f"; в продаже с обложкой {on_sale}")
+    on_sale = psql(ON_SALE_SQL).strip().split("|")
+    if len(on_sale) == 3:
+        print(f"{now()} готово за {time.time() - started:.0f} с: сохранено {len(done)} фото; "
+              f"в продаже локально: главных {on_sale[0]}, вторых {on_sale[1]} из {on_sale[2]}")
+    else:
+        print(f"{now()} готово за {time.time() - started:.0f} с: сохранено {len(done)} фото")
+    if bad:
+        print(f"не удалось получить {len(bad)} фото; повтор через {FAILED_HOURS} ч")
 
 
 if __name__ == "__main__":
