@@ -1,74 +1,68 @@
 import Link from "next/link";
+import pool from "@/lib/db";
+import { firstDisplayValue } from "@/lib/format";
+import ArrivalPhoto from "./ArrivalPhoto";
 
-// Заглушки — потом заменим реальными данными из базы
-const MOCK_CARS = [
-  {
-    id: "1",
-    brand: "Haval",
-    model: "Jolion",
-    year: 2023,
-    mileage: 18000,
-    priceChina: 1200000,
-    priceTotal: 1890000,
-    city: "Чэнду",
-    fuel: "Гибрид",
-    transmission: "Автомат",
-    color: "Белый",
-  },
-  {
-    id: "2",
-    brand: "Geely",
-    model: "Coolray",
-    year: 2022,
-    mileage: 32000,
-    priceChina: 980000,
-    priceTotal: 1620000,
-    city: "Шанхай",
-    fuel: "Бензин",
-    transmission: "Автомат",
-    color: "Серый",
-  },
-  {
-    id: "3",
-    brand: "Chery",
-    model: "Tiggo 7 Pro",
-    year: 2023,
-    mileage: 12000,
-    priceChina: 1450000,
-    priceTotal: 2180000,
-    city: "Пекин",
-    fuel: "Бензин",
-    transmission: "Автомат",
-    color: "Синий",
-  },
-  {
-    id: "4",
-    brand: "BYD",
-    model: "Seal",
-    year: 2023,
-    mileage: 8000,
-    priceChina: 2100000,
-    priceTotal: 3050000,
-    city: "Шэньчжэнь",
-    fuel: "Электро",
-    transmission: "Автомат",
-    color: "Чёрный",
-  },
-];
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-    maximumFractionDigits: 0,
-  }).format(price);
+interface Car {
+  listing_id: string;
+  brand_ru: string;
+  model: string;
+  year: number | null;
+  mileage_km: number | null;
+  price_cny: number;
+  fuel: string | null;
+  spec_fuel: string | null;
+  city_display: string | null;
+  photos: string | null;
+  images: string | null;
+  local_photo: string | null;
 }
 
-function formatMileage(km: number) {
-  return new Intl.NumberFormat("ru-RU").format(km) + " км";
+function firstPhoto(car: Car): string | null {
+  if (car.local_photo) return car.local_photo;
+  for (const value of [car.photos, car.images]) {
+    if (!value) continue;
+    try {
+      const photos = JSON.parse(value);
+      if (Array.isArray(photos) && typeof photos[0] === "string" && photos[0]) {
+        return `/api/img?url=${encodeURIComponent(photos[0])}`;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
-export default function LatestArrivals() {
+export default async function LatestArrivals() {
+  let cars: Car[] = [];
+  let total: number | null = null;
+  try {
+    const [carsResult, countResult] = await Promise.all([
+      pool.query<Car>(
+        `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
+                c.fuel, s.fuel AS spec_fuel, COALESCE(ct.city_ru, c.city) AS city_display,
+                c.photos, c.images, c.local_photo
+         FROM cars c
+         LEFT JOIN specs s ON s.spec_id = c.spec_id
+         LEFT JOIN city_translations ct ON ct.city_cn = c.city
+         WHERE c.is_active = 1 AND c.price_cny > 0
+         ORDER BY c.scraped_at DESC NULLS LAST, c.listing_id DESC
+         LIMIT 4`,
+      ),
+      pool.query<{ count: string }>(
+        "SELECT COUNT(*) FROM cars WHERE is_active = 1 AND price_cny > 0",
+      ),
+    ]);
+    cars = carsResult.rows;
+    total = Number(countResult.rows[0].count);
+  } catch (error) {
+    console.error("Не удалось загрузить свежие объявления", error);
+  }
+
+  const catalogLabel =
+    total === null ? "Все автомобили" : `Все ${total.toLocaleString("ru-RU")} авто`;
+
   return (
     <section className="bg-graphite-900 py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -85,85 +79,73 @@ export default function LatestArrivals() {
             href="/catalog/used"
             className="hidden sm:flex items-center gap-2 text-gray-400 hover:text-orange-500 font-body text-sm transition-colors"
           >
-            Все 42 184 авто
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
+            {catalogLabel} <span aria-hidden="true">→</span>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {MOCK_CARS.map((car) => (
-            <Link
-              key={car.id}
-              href={`/car/${car.id}`}
-              className="group bg-graphite-800 rounded-xl overflow-hidden border border-white/5 hover:border-orange-500/20 transition-all duration-200"
-            >
-              {/* Фото-заглушка */}
-              <div className="aspect-[4/3] bg-graphite-700 relative overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg
-                    className="w-16 h-16 text-graphite-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1}
-                      d="M19 9l-7-7-7 7M5 9v11a1 1 0 001 1h3v-5h4v5h3a1 1 0 001-1V9"
-                    />
-                  </svg>
-                </div>
-                {/* Бейдж топлива */}
-                <div className="absolute top-2 left-2">
-                  <span className="bg-graphite-900/80 text-gray-300 font-body text-xs px-2 py-1 rounded-full backdrop-blur">
-                    {car.fuel}
-                  </span>
-                </div>
-              </div>
-
-              {/* Инфо */}
-              <div className="p-4">
-                <div className="font-heading font-bold text-sm text-white mb-1">
-                  {car.brand} {car.model}
-                </div>
-                <div className="flex items-center gap-2 text-gray-400 font-body text-xs mb-3">
-                  <span>{car.year}</span>
-                  <span>·</span>
-                  <span>{formatMileage(car.mileage)}</span>
-                  <span>·</span>
-                  <span>{car.city}</span>
-                </div>
-
-                {/* Цены */}
-                <div className="border-t border-white/5 pt-3">
-                  <div className="text-gray-500 font-body text-xs mb-0.5">
-                    Цена в Китае: {formatPrice(car.priceChina)}
+        {cars.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {cars.map((car) => {
+              const photo = firstPhoto(car);
+              const fuel = firstDisplayValue(car.fuel, car.spec_fuel);
+              const model = car.model
+                ?.replace(/[一-鿿㐀-䶿]+/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+              const details = [
+                car.year,
+                car.mileage_km != null
+                  ? `${new Intl.NumberFormat("ru-RU").format(car.mileage_km)} км`
+                  : null,
+                car.city_display,
+              ].filter((value) => value != null && value !== "");
+              return (
+                <Link
+                  key={car.listing_id}
+                  href={`/car/${encodeURIComponent(car.listing_id)}`}
+                  className="group min-w-0 bg-graphite-800 rounded-xl overflow-hidden border border-white/5 hover:border-orange-500/20 transition-all duration-200"
+                >
+                  <div className="aspect-[4/3] bg-graphite-700 relative overflow-hidden">
+                    <ArrivalPhoto src={photo} alt={`${car.brand_ru} ${model || ""}`} />
+                    {fuel && (
+                      <div className="absolute top-2 left-2">
+                        <span className="bg-graphite-900/80 text-gray-300 font-body text-xs px-2 py-1 rounded-full backdrop-blur">
+                          {fuel}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="font-heading font-bold text-orange-500 text-base">
-                    {formatPrice(car.priceTotal)}
+                  <div className="p-4">
+                    <div className="font-heading font-bold text-sm text-white mb-1 [overflow-wrap:anywhere]">
+                      {car.brand_ru} {model}
+                    </div>
+                    <div className="text-gray-400 font-body text-xs mb-3 [overflow-wrap:anywhere]">
+                      {details.join(" · ")}
+                    </div>
+                    <div className="border-t border-white/5 pt-3">
+                      <div className="text-gray-500 font-body text-xs mb-0.5">Цена в Китае</div>
+                      <div className="font-heading font-bold text-orange-500 text-base">
+                        ¥{new Intl.NumberFormat("ru-RU").format(car.price_cny)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-gray-500 font-body text-xs">под ключ в России</div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-gray-400 font-body text-sm">
+            {total === null
+              ? "Не удалось загрузить объявления. Попробуйте позже."
+              : "Пока нет объявлений."}
+          </p>
+        )}
         <div className="text-center mt-8 sm:hidden">
           <Link
             href="/catalog/used"
             className="inline-flex items-center gap-2 bg-graphite-800 text-white font-body font-semibold text-sm px-6 py-3 rounded-xl border border-white/5 hover:border-orange-500/30 transition-all"
           >
-            Все 42 184 авто
+            {catalogLabel}
           </Link>
         </div>
       </div>
