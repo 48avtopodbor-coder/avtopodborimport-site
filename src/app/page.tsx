@@ -6,6 +6,8 @@ import LatestArrivals from "@/components/home/LatestArrivals";
 import HowToBuy from "@/components/home/HowToBuy";
 import Footer from "@/components/layout/Footer";
 
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-graphite-900">
