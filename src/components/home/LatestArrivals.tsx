@@ -13,25 +13,7 @@ interface Car {
   fuel: string | null;
   spec_fuel: string | null;
   city_display: string | null;
-  photos: string | null;
-  images: string | null;
-  local_photo: string | null;
-}
-
-function firstPhoto(car: Car): string | null {
-  if (car.local_photo) return car.local_photo;
-  for (const value of [car.photos, car.images]) {
-    if (!value) continue;
-    try {
-      const photos = JSON.parse(value);
-      if (Array.isArray(photos) && typeof photos[0] === "string" && photos[0]) {
-        return `/api/img?url=${encodeURIComponent(photos[0])}`;
-      }
-    } catch {
-      continue;
-    }
-  }
-  return null;
+  local_photo: string;
 }
 
 export default async function LatestArrivals() {
@@ -40,10 +22,18 @@ export default async function LatestArrivals() {
   try {
     const [carsResult, countResult] = await Promise.all([
       pool.query<Car>(
-        `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
+        `WITH latest_by_brand AS (
+           SELECT DISTINCT ON (lower(trim(brand_ru))) *
+           FROM cars
+           WHERE is_active = 1 AND price_cny > 0
+             AND NULLIF(trim(brand_ru), '') IS NOT NULL
+             AND NULLIF(trim(local_photo), '') IS NOT NULL
+           ORDER BY lower(trim(brand_ru)), scraped_at DESC NULLS LAST, listing_id DESC
+         )
+         SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
                 c.fuel, s.fuel AS spec_fuel, COALESCE(ct.city_ru, c.city) AS city_display,
-                c.photos, c.images, c.local_photo
-         FROM cars c
+                c.local_photo
+         FROM latest_by_brand c
          LEFT JOIN specs s ON s.spec_id = c.spec_id
          LEFT JOIN city_translations ct ON ct.city_cn = c.city
          WHERE c.is_active = 1 AND c.price_cny > 0
@@ -84,9 +74,8 @@ export default async function LatestArrivals() {
         </div>
 
         {cars.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 empty:before:col-span-full empty:before:font-body empty:before:text-sm empty:before:text-gray-400 empty:before:content-['Пока_нет_объявлений_с_доступными_фото.']">
             {cars.map((car) => {
-              const photo = firstPhoto(car);
               const fuel = firstDisplayValue(car.fuel, car.spec_fuel);
               const model = car.model
                 ?.replace(/[一-鿿㐀-䶿]+/g, " ")
@@ -100,21 +89,13 @@ export default async function LatestArrivals() {
                 car.city_display,
               ].filter((value) => value != null && value !== "");
               return (
-                <Link
+                <ArrivalPhoto
                   key={car.listing_id}
                   href={`/car/${encodeURIComponent(car.listing_id)}`}
-                  className="group min-w-0 bg-graphite-800 rounded-xl overflow-hidden border border-white/5 hover:border-orange-500/20 transition-all duration-200"
+                  src={car.local_photo}
+                  alt={`${car.brand_ru} ${model || ""}`}
+                  fuel={fuel}
                 >
-                  <div className="aspect-[4/3] bg-graphite-700 relative overflow-hidden">
-                    <ArrivalPhoto src={photo} alt={`${car.brand_ru} ${model || ""}`} />
-                    {fuel && (
-                      <div className="absolute top-2 left-2">
-                        <span className="bg-graphite-900/80 text-gray-300 font-body text-xs px-2 py-1 rounded-full backdrop-blur">
-                          {fuel}
-                        </span>
-                      </div>
-                    )}
-                  </div>
                   <div className="p-4">
                     <div className="font-heading font-bold text-sm text-white mb-1 [overflow-wrap:anywhere]">
                       {car.brand_ru} {model}
@@ -129,7 +110,7 @@ export default async function LatestArrivals() {
                       </div>
                     </div>
                   </div>
-                </Link>
+                </ArrivalPhoto>
               );
             })}
           </div>
@@ -137,7 +118,7 @@ export default async function LatestArrivals() {
           <p className="text-gray-400 font-body text-sm">
             {total === null
               ? "Не удалось загрузить объявления. Попробуйте позже."
-              : "Пока нет объявлений."}
+              : "Пока нет подходящих объявлений с фото."}
           </p>
         )}
         <div className="text-center mt-8 sm:hidden">
