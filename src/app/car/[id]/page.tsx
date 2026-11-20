@@ -4,6 +4,8 @@ import HeaderPhones from "@/components/layout/HeaderPhones";
 import { notFound } from "next/navigation";
 import { displayValue, firstDisplayValue } from "@/lib/format";
 import CarGallery from "@/components/car/CarGallery";
+import { modelEquipment } from "@/lib/equipment";
+import { sellerDescription as translateSellerDescription } from "@/lib/seller-description";
 
 interface Car {
   listing_id: string;
@@ -18,6 +20,7 @@ interface Car {
   city: string;
   city_display: string;
   distance_km: number | null;
+  description: string | null;
   engine_ml: number | null;
   tires: string | null;
   photos: string | null;
@@ -34,6 +37,7 @@ interface Spec {
   power_hp: number | null;
   engine_ml: number | null;
   params_text: string | null;
+  params_json: unknown;
   tires: string | null;
 }
 
@@ -71,7 +75,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
   const [carResult, specsResult] = await Promise.all([
     pool.query(
       `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
-              c.fuel, c.gearbox, c.color, c.city, c.engine_ml, c.tires,
+              c.fuel, c.gearbox, c.color, c.city, c.engine_ml, c.tires, c.description,
               COALESCE(ct.city_ru, c.city) as city_display,
               ct.distance_km,
               c.photos, c.images, c.local_photo, c.local_photo_2, c.scraped_at
@@ -82,7 +86,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
     ),
     // Комплектация связана с машиной через cars.spec_id, а не через номер объявления
     pool.query(
-      `SELECT s.fuel, s.drive, s.gearbox, s.power_hp, s.engine_ml, s.params_text, s.tires
+      `SELECT s.fuel, s.drive, s.gearbox, s.power_hp, s.engine_ml, s.params_text, s.params_json, s.tires
        FROM cars c
        JOIN specs s ON s.spec_id = c.spec_id
        WHERE c.listing_id = $1 AND c.is_active = 1`,
@@ -94,6 +98,8 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
 
   const car: Car = carResult.rows[0];
   const spec: Spec | null = specsResult.rows[0] ?? null;
+  const equipment = modelEquipment(spec?.params_json);
+  const sellerDescription = translateSellerDescription(car.description);
   const engineMl = [spec?.engine_ml, car.engine_ml].find(
     (value) => value != null && Number.isFinite(value) && value > 0,
   );
@@ -250,6 +256,57 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               </table>
             </div>
           </div>
+        )}
+
+        {sellerDescription && (
+          <section className="mt-10">
+            <h2 className="font-heading font-bold text-lg text-white mb-2">Описание продавца</h2>
+            <p className="text-gray-400 font-body text-sm mb-4">
+              Информация со слов продавца. Состояние автомобиля уточняйте при осмотре.
+              {sellerDescription.dictionary && " Перевод с китайского по словарю."}
+            </p>
+            {sellerDescription.translated ? (
+              <p className="bg-graphite-800 rounded-xl p-5 text-white font-body text-sm leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
+                {sellerDescription.text}
+              </p>
+            ) : (
+              <div className="bg-graphite-800 rounded-xl p-5 text-gray-400 font-body text-sm">
+                Автоматический перевод пока недоступен. Уточните информацию у нас.
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-white">Оригинал описания</summary>
+                  <p lang="zh" className="mt-3 whitespace-pre-line [overflow-wrap:anywhere]">
+                    {sellerDescription.text}
+                  </p>
+                </details>
+              </div>
+            )}
+          </section>
+        )}
+
+        {equipment.length > 0 && (
+          <section className="mt-10">
+            <h2 className="font-heading font-bold text-lg text-white mb-2">Комплектация</h2>
+            <p className="text-gray-400 font-body text-sm mb-4">
+              Данные модели. Фактическое оснащение автомобиля уточняйте при осмотре.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {equipment.map(({ title, items }) => (
+                <div key={title} className="bg-graphite-800 rounded-xl p-5 min-w-0">
+                  <h3 className="font-heading font-bold text-white text-sm mb-3">{title}</h3>
+                  <ul className="space-y-2">
+                    {items.map(({ label, status }) => (
+                      <li key={label} className="flex justify-between gap-3 text-sm font-body">
+                        <span className="text-gray-400 min-w-0 [overflow-wrap:anywhere]">
+                          {label}
+                        </span>
+                        <span className="text-white shrink-0">{status}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Назад */}
