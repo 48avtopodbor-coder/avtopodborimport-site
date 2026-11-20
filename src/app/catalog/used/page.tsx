@@ -1,6 +1,7 @@
 import pool from "@/lib/db";
 import Link from "next/link";
 import HeaderPhones from "@/components/layout/HeaderPhones";
+import HeaderHomeLink from "@/components/layout/HeaderHomeLink";
 import { usedBrandHref } from "@/lib/catalog";
 import { firstDisplayValue } from "@/lib/format";
 import MobileBrandSelect from "./MobileBrandSelect";
@@ -120,14 +121,17 @@ export default async function UsedCatalogPage({
     <div className="min-h-screen bg-graphite-900">
       {/* Шапка */}
       <header className="border-b border-white/5 px-4 sm:px-6 py-4 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
-            <span className="font-heading font-bold text-white text-xs">AI</span>
-          </div>
-          <span className="font-heading font-bold text-white text-sm uppercase tracking-wider">
-            AVTOPODBOR IMPORT
-          </span>
-        </Link>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-5">
+          <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 shrink-0 bg-orange-500 rounded flex items-center justify-center">
+              <span className="font-heading font-bold text-white text-xs">AI</span>
+            </div>
+            <span className="font-heading font-bold text-white text-sm uppercase tracking-wider max-[420px]:max-w-[130px] max-[420px]:leading-4">
+              AVTOPODBOR IMPORT
+            </span>
+          </Link>
+          <HeaderHomeLink />
+        </div>
         <nav className="hidden md:flex gap-6 text-sm font-body">
           <Link href="/catalog/used" className="text-white">
             С пробегом
@@ -139,7 +143,7 @@ export default async function UsedCatalogPage({
             Цена под ключ
           </Link>
         </nav>
-        <HeaderPhones className="w-full justify-between sm:w-auto sm:flex-col" />
+        <HeaderPhones className="w-full justify-between sm:w-auto sm:flex-col sm:max-[930px]:ml-auto" />
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
