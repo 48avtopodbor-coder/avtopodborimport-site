@@ -40,12 +40,8 @@ export default function HowToBuy() {
               <div className="font-heading font-bold text-5xl text-white/5 mb-3 leading-none">
                 {step.num}
               </div>
-              <div className="font-heading font-bold text-base text-white mb-2">
-                {step.title}
-              </div>
-              <div className="font-body text-sm text-gray-400 leading-relaxed">
-                {step.desc}
-              </div>
+              <div className="font-heading font-bold text-base text-white mb-2">{step.title}</div>
+              <div className="font-body text-sm text-gray-400 leading-relaxed">{step.desc}</div>
             </div>
           ))}
         </div>

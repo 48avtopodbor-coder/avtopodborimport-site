@@ -1,17 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { usedBrandHref } from "@/lib/catalog";
 
 const BRANDS = [
-  "Любая марка", "Haval", "Geely", "Chery", "Changan", "BYD",
-  "Li Auto", "Tank", "Exeed", "Zeekr", "Mercedes-Benz",
-  "Hyundai", "Kia", "Toyota", "BMW", "Audi", "Volkswagen", "Skoda",
+  "Любая марка",
+  "Haval",
+  "Geely",
+  "Chery",
+  "Changan",
+  "BYD",
+  "Li Auto",
+  "Tank",
+  "Exeed",
+  "Zeekr",
+  "Mercedes-Benz",
+  "Hyundai",
+  "Kia",
+  "Toyota",
+  "BMW",
+  "Audi",
+  "Volkswagen",
+  "Skoda",
 ];
 
-const BODY_TYPES = [
-  "Любой кузов", "Седан", "Кроссовер", "Внедорожник", "Хэтчбек", "Минивэн",
-];
+const BODY_TYPES = ["Любой кузов", "Седан", "Кроссовер", "Внедорожник", "Хэтчбек", "Минивэн"];
+const quickFilterClass =
+  "bg-graphite-800 hover:bg-graphite-700 text-gray-400 hover:text-white font-body text-xs px-4 py-2 rounded-full border border-white/5 transition-all";
 
 export default function HeroSearch() {
   const router = useRouter();
@@ -122,14 +139,22 @@ export default function HeroSearch() {
 
           {/* Быстрые фильтры */}
           <div className="flex flex-wrap gap-2 mt-4 justify-center">
-            {["До 2 млн ₽", "До 3 млн ₽", "Кроссоверы", "Haval", "Geely", "BYD"].map((tag) => (
-              <button
-                key={tag}
-                className="bg-graphite-800 hover:bg-graphite-700 text-gray-400 hover:text-white font-body text-xs px-4 py-2 rounded-full border border-white/5 transition-all"
-              >
+            {["До 2 млн ₽", "До 3 млн ₽", "Кроссоверы"].map((tag) => (
+              <button key={tag} className={quickFilterClass}>
                 {tag}
               </button>
             ))}
+            {catalogType === "used" &&
+              ["Haval", "Geely", "BYD"].map((name) => (
+                <Link
+                  key={name}
+                  href={usedBrandHref(name)}
+                  prefetch={false}
+                  className={quickFilterClass}
+                >
+                  {name}
+                </Link>
+              ))}
           </div>
         </div>
       </div>
