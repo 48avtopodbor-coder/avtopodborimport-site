@@ -1,7 +1,9 @@
+import HeaderPhones from "@/components/layout/HeaderPhones";
+
 export default function Loading() {
   return (
     <div className="min-h-screen bg-graphite-900">
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-white/5 px-4 sm:px-6 py-4 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
             <span className="font-bold text-white text-xs">AI</span>
@@ -10,6 +12,7 @@ export default function Loading() {
             AVTOPODBOR IMPORT
           </span>
         </div>
+        <HeaderPhones className="w-full justify-between sm:w-auto sm:flex-col" />
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">

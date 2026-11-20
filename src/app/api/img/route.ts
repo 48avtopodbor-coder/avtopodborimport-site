@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     "x0.autoimg.cn",
   ];
   const isAllowed = allowedHosts.some(
-    (h) => parsed.hostname === h || parsed.hostname.endsWith("." + h)
+    (h) => parsed.hostname === h || parsed.hostname.endsWith("." + h),
   );
 
   if (!isAllowed) {

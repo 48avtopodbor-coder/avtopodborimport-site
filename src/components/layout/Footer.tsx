@@ -16,7 +16,8 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-gray-400 font-body text-sm leading-relaxed max-w-sm">
-              Подбор и ввоз автомобилей из Китая под ключ. Прозрачная цена с доставкой и растаможкой.
+              Подбор и ввоз автомобилей из Китая под ключ. Прозрачная цена с доставкой и
+              растаможкой.
             </p>
           </div>
 
@@ -26,9 +27,30 @@ export default function Footer() {
               Каталог
             </div>
             <ul className="space-y-2">
-              <li><Link href="/catalog/used" className="text-gray-400 hover:text-white font-body text-sm transition-colors">С пробегом из Китая</Link></li>
-              <li><Link href="/catalog/new" className="text-gray-400 hover:text-white font-body text-sm transition-colors">Новые автомобили</Link></li>
-              <li><Link href="/price" className="text-gray-400 hover:text-white font-body text-sm transition-colors">Цена под ключ</Link></li>
+              <li>
+                <Link
+                  href="/catalog/used"
+                  className="text-gray-400 hover:text-white font-body text-sm transition-colors"
+                >
+                  С пробегом из Китая
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/catalog/new"
+                  className="text-gray-400 hover:text-white font-body text-sm transition-colors"
+                >
+                  Новые автомобили
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/price"
+                  className="text-gray-400 hover:text-white font-body text-sm transition-colors"
+                >
+                  Цена под ключ
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -50,7 +72,10 @@ export default function Footer() {
             © 2024 AVTOPODBOR IMPORT. Расчёты предварительные.
           </p>
           <div className="flex items-center gap-4">
-            <Link href="/privacy" className="text-gray-600 hover:text-gray-400 font-body text-xs transition-colors">
+            <Link
+              href="/privacy"
+              className="text-gray-600 hover:text-gray-400 font-body text-xs transition-colors"
+            >
               Политика конфиденциальности
             </Link>
           </div>

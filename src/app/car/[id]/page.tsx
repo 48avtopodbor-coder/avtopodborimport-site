@@ -1,5 +1,6 @@
 import pool from "@/lib/db";
 import Link from "next/link";
+import HeaderPhones from "@/components/layout/HeaderPhones";
 import { notFound } from "next/navigation";
 import { displayValue, firstDisplayValue } from "@/lib/format";
 import CarGallery from "@/components/car/CarGallery";
@@ -17,6 +18,8 @@ interface Car {
   city: string;
   city_display: string;
   distance_km: number | null;
+  engine_ml: number | null;
+  tires: string | null;
   photos: string | null;
   images: string | null;
   local_photo: string | null;
@@ -62,32 +65,28 @@ function formatPrice(cny: number): string {
   return `¥${(cny / 10000).toFixed(1)} вн`;
 }
 
-export default async function CarPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function CarPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const [carResult, specsResult] = await Promise.all([
     pool.query(
       `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
-              c.fuel, c.gearbox, c.color, c.city,
+              c.fuel, c.gearbox, c.color, c.city, c.engine_ml, c.tires,
               COALESCE(ct.city_ru, c.city) as city_display,
               ct.distance_km,
               c.photos, c.images, c.local_photo, c.local_photo_2, c.scraped_at
        FROM cars c
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
-       WHERE c.listing_id = $1`,
-      [id]
+       WHERE c.listing_id = $1 AND c.is_active = 1`,
+      [id],
     ),
     // Комплектация связана с машиной через cars.spec_id, а не через номер объявления
     pool.query(
       `SELECT s.fuel, s.drive, s.gearbox, s.power_hp, s.engine_ml, s.params_text, s.tires
        FROM cars c
        JOIN specs s ON s.spec_id = c.spec_id
-       WHERE c.listing_id = $1`,
-      [id]
+       WHERE c.listing_id = $1 AND c.is_active = 1`,
+      [id],
     ),
   ]);
 
@@ -95,6 +94,10 @@ export default async function CarPage({
 
   const car: Car = carResult.rows[0];
   const spec: Spec | null = specsResult.rows[0] ?? null;
+  const engineMl = [spec?.engine_ml, car.engine_ml].find(
+    (value) => value != null && Number.isFinite(value) && value > 0,
+  );
+  const tires = firstDisplayValue(spec?.tires, car.tires);
   const remotePhotos = getPhotos(car);
 
   // Локальные копии отдаются с сайта без ожидания китайского сервера.
@@ -112,7 +115,7 @@ export default async function CarPage({
   return (
     <div className="min-h-screen bg-graphite-900">
       {/* Шапка */}
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-white/5 px-4 sm:px-6 py-4 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
             <span className="font-heading font-bold text-white text-xs">AI</span>
@@ -132,6 +135,7 @@ export default async function CarPage({
             Цена под ключ
           </Link>
         </nav>
+        <HeaderPhones className="w-full justify-between sm:w-auto sm:flex-col" />
       </header>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -141,7 +145,9 @@ export default async function CarPage({
             Авто с пробегом
           </Link>
           <span>/</span>
-          <span className="text-gray-300">{car.brand_ru} {cleanModel(car.model)}</span>
+          <span className="text-gray-300">
+            {car.brand_ru} {cleanModel(car.model)}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -160,7 +166,9 @@ export default async function CarPage({
             <p className="text-gray-400 font-body text-sm mb-6">
               {car.year} · {car.city_display}
               {car.distance_km && (
-                <span className="ml-2 text-gray-600">· {car.distance_km.toLocaleString("ru")} км до Хоргоса</span>
+                <span className="ml-2 text-gray-600">
+                  · {car.distance_km.toLocaleString("ru")} км до Хоргоса
+                </span>
               )}
             </p>
 
@@ -184,7 +192,10 @@ export default async function CarPage({
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: "Год", value: car.year },
-                { label: "Пробег", value: car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : null },
+                {
+                  label: "Пробег",
+                  value: car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : null,
+                },
                 // Своих данных у машины нет, пока не собрана карточка; тогда берём из комплектации
                 { label: "Топливо", value: firstDisplayValue(car.fuel, spec?.fuel) },
                 { label: "КПП", value: firstDisplayValue(car.gearbox, spec?.gearbox) },
@@ -193,17 +204,17 @@ export default async function CarPage({
               ]
                 .filter(({ value }) => value)
                 .map(({ label, value }) => (
-                <div key={label} className="bg-graphite-800 rounded-lg p-3">
-                  <div className="text-gray-500 font-body text-xs mb-0.5">{label}</div>
-                  <div className="text-white font-body text-sm">{value}</div>
-                </div>
-              ))}
+                  <div key={label} className="bg-graphite-800 rounded-lg p-3">
+                    <div className="text-gray-500 font-body text-xs mb-0.5">{label}</div>
+                    <div className="text-white font-body text-sm">{value}</div>
+                  </div>
+                ))}
             </div>
           </div>
         </div>
 
         {/* Технические характеристики */}
-        {spec && (
+        {(spec || engineMl || tires) && (
           <div className="mt-10">
             <h2 className="font-heading font-bold text-lg text-white mb-4">
               Технические характеристики
@@ -212,14 +223,17 @@ export default async function CarPage({
               <table className="w-full">
                 <tbody>
                   {[
-                    { label: "Топливо", value: displayValue(spec.fuel) },
-                    { label: "Привод", value: displayValue(spec.drive) },
-                    { label: "КПП", value: displayValue(spec.gearbox) },
-                    { label: "Мощность", value: spec.power_hp ? `${spec.power_hp} л.с.` : null },
-                    { label: "Объём двигателя", value: spec.engine_ml ? `${spec.engine_ml} мл` : null },
-                    { label: "Шины", value: displayValue(spec.tires) },
+                    { label: "Топливо", value: displayValue(spec?.fuel) },
+                    { label: "Привод", value: displayValue(spec?.drive) },
+                    { label: "КПП", value: displayValue(spec?.gearbox) },
+                    { label: "Мощность", value: spec?.power_hp ? `${spec.power_hp} л.с.` : null },
+                    {
+                      label: "Объём двигателя",
+                      value: engineMl ? `${engineMl} мл` : null,
+                    },
+                    { label: "Шины", value: tires },
                     // Пока на китайском — скрываем; появится, когда сборщик начнёт переводить
-                    { label: "Параметры", value: displayValue(spec.params_text) },
+                    { label: "Параметры", value: displayValue(spec?.params_text) },
                   ]
                     .filter(({ value }) => value)
                     .map(({ label, value }, i) => (
@@ -227,7 +241,7 @@ export default async function CarPage({
                         <td className="px-5 py-3 text-gray-400 font-body text-sm w-1/2 border-b border-white/5">
                           {label}
                         </td>
-                        <td className="px-5 py-3 text-white font-body text-sm border-b border-white/5">
+                        <td className="px-5 py-3 text-white font-body text-sm border-b border-white/5 [overflow-wrap:anywhere]">
                           {value}
                         </td>
                       </tr>

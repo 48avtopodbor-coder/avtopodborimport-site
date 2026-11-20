@@ -57,9 +57,7 @@ export default function HowPriceWorks() {
                 }`}
               >
                 <div className="text-2xl mb-2">{step.icon}</div>
-                <div className="font-heading font-bold text-sm text-white mb-1">
-                  {step.label}
-                </div>
+                <div className="font-heading font-bold text-sm text-white mb-1">{step.label}</div>
                 <div
                   className={`font-heading font-bold text-lg mb-1 ${
                     step.accent ? "text-orange-500" : "text-white"
@@ -87,7 +85,13 @@ export default function HowPriceWorks() {
             className="inline-flex items-center gap-2 text-orange-500 hover:text-orange-400 font-body font-semibold text-sm transition-colors"
           >
             Рассчитать цену привоза
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </a>

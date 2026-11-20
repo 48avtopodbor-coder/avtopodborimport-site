@@ -1,7 +1,9 @@
 import pool from "@/lib/db";
 import Link from "next/link";
-import Image from "next/image";
+import HeaderPhones from "@/components/layout/HeaderPhones";
+import { usedBrandHref } from "@/lib/catalog";
 import { firstDisplayValue } from "@/lib/format";
+import MobileBrandSelect from "./MobileBrandSelect";
 
 interface Car {
   listing_id: string;
@@ -52,9 +54,14 @@ function formatPrice(cny: number): string {
 export default async function UsedCatalogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ brand?: string; fuel?: string; page?: string }>;
+  searchParams: Promise<Record<string, string | string[]>>;
 }) {
-  const sp = await searchParams;
+  const sp = Object.fromEntries(
+    Object.entries(await searchParams).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? value[0] : value,
+    ]),
+  );
   const page = parseInt(sp.page || "1");
   const limit = 24;
   const offset = (page - 1) * limit;
@@ -87,15 +94,16 @@ export default async function UsedCatalogPage({
        WHERE ${where}
        ORDER BY c.scraped_at DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
-      [...params, limit, offset]
+      [...params, limit, offset],
     ),
     pool.query(
       `SELECT COUNT(*) FROM cars c LEFT JOIN specs s ON s.spec_id = c.spec_id WHERE ${where}`,
-      params
+      params,
     ),
-    pool.query(
-      `SELECT brand_ru, COUNT(*) as cnt FROM cars WHERE is_active=1 AND price_cny>0
-       GROUP BY brand_ru ORDER BY cnt DESC LIMIT 20`
+    pool.query<{ brand_ru: string; cnt: string }>(
+      `SELECT brand_ru, COUNT(*) as cnt FROM cars
+       WHERE is_active=1 AND price_cny>0 AND trim(brand_ru) <> ''
+       GROUP BY brand_ru ORDER BY cnt DESC, brand_ru`,
     ),
   ]);
 
@@ -103,11 +111,15 @@ export default async function UsedCatalogPage({
   const total = parseInt(countResult.rows[0].count);
   const totalPages = Math.ceil(total / limit);
   const brands = brandsResult.rows;
+  const brandNames = brands.map((b) => b.brand_ru);
+  if (sp.brand && !brandNames.includes(sp.brand)) brandNames.push(sp.brand);
+  brandNames.sort((a, b) => a.localeCompare(b, "ru"));
+  const query = new URLSearchParams(sp).toString();
 
   return (
     <div className="min-h-screen bg-graphite-900">
       {/* Шапка */}
-      <header className="border-b border-white/5 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-white/5 px-4 sm:px-6 py-4 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
         <Link href="/" className="flex items-center gap-3">
           <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
             <span className="font-heading font-bold text-white text-xs">AI</span>
@@ -117,10 +129,17 @@ export default async function UsedCatalogPage({
           </span>
         </Link>
         <nav className="hidden md:flex gap-6 text-sm font-body">
-          <Link href="/catalog/used" className="text-white">С пробегом</Link>
-          <Link href="/catalog/new" className="text-gray-400 hover:text-white transition-colors">Новые</Link>
-          <Link href="/price" className="text-gray-400 hover:text-white transition-colors">Цена под ключ</Link>
+          <Link href="/catalog/used" className="text-white">
+            С пробегом
+          </Link>
+          <Link href="/catalog/new" className="text-gray-400 hover:text-white transition-colors">
+            Новые
+          </Link>
+          <Link href="/price" className="text-gray-400 hover:text-white transition-colors">
+            Цена под ключ
+          </Link>
         </nav>
+        <HeaderPhones className="w-full justify-between sm:w-auto sm:flex-col" />
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -128,27 +147,40 @@ export default async function UsedCatalogPage({
           <h1 className="font-heading font-bold text-2xl text-white mb-1">
             Авто с пробегом из Китая
           </h1>
-          <p className="text-gray-400 font-body text-sm">{total.toLocaleString("ru")} автомобилей</p>
+          <p className="text-gray-400 font-body text-sm">
+            {total.toLocaleString("ru")} автомобилей
+          </p>
         </div>
+
+        <MobileBrandSelect value={usedBrandHref(sp.brand || "", query)}>
+          <option value={usedBrandHref("", query)}>Все марки</option>
+          {brandNames.map((name) => (
+            <option key={name} value={usedBrandHref(name, query)}>
+              {name}
+            </option>
+          ))}
+        </MobileBrandSelect>
 
         <div className="flex gap-8">
           {/* Фильтры */}
           <aside className="hidden lg:block w-56 shrink-0">
             <div className="bg-graphite-800 rounded-xl p-4">
-              <h2 className="font-heading font-bold text-white text-sm uppercase tracking-wider mb-3">Марка</h2>
+              <h2 className="font-heading font-bold text-white text-sm uppercase tracking-wider mb-3">
+                Марка
+              </h2>
               <div className="space-y-1">
                 <Link
-                  href="/catalog/used"
+                  href={usedBrandHref("", query)}
                   className={`block text-sm font-body py-1 px-2 rounded transition-colors ${
                     !sp.brand ? "text-orange-400" : "text-gray-400 hover:text-white"
                   }`}
                 >
                   Все марки
                 </Link>
-                {brands.map((b) => (
+                {brands.slice(0, 20).map((b) => (
                   <Link
                     key={b.brand_ru}
-                    href={`/catalog/used?brand=${encodeURIComponent(b.brand_ru)}`}
+                    href={usedBrandHref(b.brand_ru, query)}
                     className={`flex justify-between text-sm font-body py-1 px-2 rounded transition-colors ${
                       sp.brand === b.brand_ru ? "text-orange-400" : "text-gray-400 hover:text-white"
                     }`}
@@ -169,8 +201,8 @@ export default async function UsedCatalogPage({
                 const photoSrc = car.local_photo
                   ? car.local_photo
                   : remotePhoto
-                  ? `/api/img?url=${encodeURIComponent(remotePhoto)}`
-                  : null;
+                    ? `/api/img?url=${encodeURIComponent(remotePhoto)}`
+                    : null;
                 return (
                   <Link
                     key={car.listing_id}
@@ -187,8 +219,18 @@ export default async function UsedCatalogPage({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-600">
-                          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 9l-7 7-7-7" />
+                          <svg
+                            className="w-12 h-12"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1}
+                              d="M19 9l-7 7-7-7"
+                            />
                           </svg>
                         </div>
                       )}
@@ -201,7 +243,9 @@ export default async function UsedCatalogPage({
                       </div>
                       <div className="flex gap-3 text-xs text-gray-400 font-body mb-2">
                         <span>{car.year}</span>
-                        <span>{car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : "—"}</span>
+                        <span>
+                          {car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : "—"}
+                        </span>
                         {firstDisplayValue(car.fuel, car.spec_fuel) && (
                           <span>{firstDisplayValue(car.fuel, car.spec_fuel)}</span>
                         )}

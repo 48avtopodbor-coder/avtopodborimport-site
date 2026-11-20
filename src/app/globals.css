@@ -5,7 +5,8 @@
 /* Системные fallback-шрифты на случай если Google Fonts не загрузился */
 :root {
   --font-unbounded: "Unbounded", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-manrope: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-manrope:
+    "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 @layer base {
@@ -13,7 +14,10 @@
     @apply bg-graphite-900 text-white font-body antialiased;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     @apply font-heading;
   }
 }
