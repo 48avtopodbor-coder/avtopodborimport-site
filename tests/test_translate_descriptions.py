@@ -61,6 +61,23 @@ class DictionaryTests(unittest.TestCase):
         self.assertIn("среднее", translated)
         self.assertIn("следов перекраски нет", translated)
 
+    def test_manual_translation_discloses_bodywork(self):
+        status, text = worker.translate(
+            "车子有油漆面和钣金，淡季洗货台台都是批发价亏本价，欢迎客户到店看车。",
+            self.dictionary,
+        )
+        self.assertEqual(status, "dictionary")
+        self.assertIn("кузовные работы", text)
+
+    def test_manual_translation_preserves_export_refusal_and_down_payment(self):
+        source, translated = next(
+            (source, translated)
+            for source, translated in self.dictionary["descriptions"].items()
+            if source.startswith("出口，同行没有合作")
+        )
+        self.assertIn("не сотрудничает с экспортёрами", translated)
+        self.assertIn("от 10%", translated)
+
     def test_revision_changes_with_dictionary(self):
         canonical = json.dumps(self.dictionary, ensure_ascii=False, separators=(",", ":"))
         import hashlib
