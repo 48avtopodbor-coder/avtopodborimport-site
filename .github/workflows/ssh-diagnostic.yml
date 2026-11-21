@@ -17,6 +17,7 @@ jobs:
           set -eu
           if [ "$DEPLOY_HOST" = '104.171.133.164' ]; then echo 'host_matches_expected=yes'; else echo 'host_matches_expected=no'; fi
           if [ "$DEPLOY_USER" = 'root' ]; then echo 'user_is_root=yes'; else echo 'user_is_root=no'; fi
+          if timeout 8 bash -c 'exec 3<>/dev/tcp/$1/22' bash "$DEPLOY_HOST"; then echo tcp_port_22=open; else echo tcp_port_22=unreachable; fi
           umask 077
           printf '%s' "$DEPLOY_KEY" | base64 -d > "$RUNNER_TEMP/diagnostic_key"
           printf '%s\n' '104.171.133.164 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICSAIfWQbUUMcCR7sJ61HPOdo753JbdDEbzNpKxQ9fpm' > "$RUNNER_TEMP/diagnostic_hosts"
