@@ -41,6 +41,19 @@ class ReviewTranslationTests(unittest.TestCase):
         self.assertFalse({r["text"] for r in first} & {r["text"] for r in second})
         self.assertEqual(len(first) + len(second), len(rows))
 
+    def test_two_wheel_drive_does_not_infer_front_axle(self):
+        checked = reviewer.apply_corrections([{
+            "id": 1, "text": "两驱豪华版", "ru": "Комплектация с передним приводом.", "cars": 1,
+        }], {"corrections": []})
+        self.assertEqual(checked[0]["ru"], "Комплектация с приводом на одну ось.")
+        self.assertTrue(checked[0]["drive_normalized"])
+
+    def test_explicit_front_axle_is_preserved(self):
+        checked = reviewer.apply_corrections([{
+            "id": 1, "text": "两驱，前驱", "ru": "Передний привод.", "cars": 1,
+        }], {"corrections": []})
+        self.assertEqual(checked[0]["ru"], "Передний привод.")
+
 
 if __name__ == "__main__":
     unittest.main()
