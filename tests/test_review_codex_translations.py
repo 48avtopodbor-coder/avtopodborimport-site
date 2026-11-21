@@ -34,6 +34,13 @@ class ReviewTranslationTests(unittest.TestCase):
         self.assertTrue(checked[0]["qa_checked"])
         self.assertFalse(checked[0]["qa_unresolved_cjk"])
 
+    def test_parallel_partitions_are_disjoint_and_complete(self):
+        rows = [{"text": f"Описание {i}", "ru": "Перевод", "cars": 1} for i in range(20)]
+        first = reviewer.select_batch(rows, set(), 80, 60000, 0, 2)
+        second = reviewer.select_batch(rows, set(), 80, 60000, 1, 2)
+        self.assertFalse({r["text"] for r in first} & {r["text"] for r in second})
+        self.assertEqual(len(first) + len(second), len(rows))
+
 
 if __name__ == "__main__":
     unittest.main()
