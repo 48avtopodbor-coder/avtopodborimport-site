@@ -21,4 +21,4 @@ jobs:
           umask 077
           printf '%s' "$DEPLOY_KEY" | base64 -d > "$RUNNER_TEMP/diagnostic_key"
           printf '%s\n' '104.171.133.164 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICSAIfWQbUUMcCR7sJ61HPOdo753JbdDEbzNpKxQ9fpm' > "$RUNNER_TEMP/diagnostic_hosts"
-          timeout 35 ssh -F /dev/null -o BatchMode=yes -o ConnectTimeout=25 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/diagnostic_hosts" -i "$RUNNER_TEMP/diagnostic_key" "$DEPLOY_USER@$DEPLOY_HOST" 'echo ssh_connection_succeeded'
+          timeout 35 ssh -vv -F /dev/null -o BatchMode=yes -o ConnectTimeout=25 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/diagnostic_hosts" -i "$RUNNER_TEMP/diagnostic_key" "$DEPLOY_USER@$DEPLOY_HOST" 'echo ssh_connection_succeeded'
