@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 
 script = Path(__file__).resolve().parents[1] / "scripts/batch_translate_with_codex.py"
@@ -40,6 +41,24 @@ class BatchTranslationTests(unittest.TestCase):
         result = batcher.validate(batch, {"translations": [
             {"id": 1, "ru": "Mercedes-Benz GLB."}]})
         self.assertEqual(result[0]["ru"], "Mercedes-Benz GLB.")
+
+    def test_retry_only_missing_translation(self):
+        batch = [{"id": 1, "text": "一手车", "cars": 1},
+                 {"id": 2, "text": "原漆", "cars": 1}]
+        answers = [
+            {"translations": [{"id": 1, "ru": "Один владелец"}]},
+            {"translations": [{"id": 2, "ru": "Заводская окраска"}]},
+        ]
+        with patch.object(batcher, "translate_batch", side_effect=answers) as model:
+            result = batcher.translate_with_repair(batch, "codex", 10, Path("/tmp"))
+        self.assertEqual(len(result), 2)
+        self.assertEqual([row["id"] for row in model.call_args_list[1].args[0]], [2])
+
+    def test_three_invalid_answers_stop_without_checkpoint(self):
+        batch = [{"id": 1, "text": "原漆", "cars": 1}]
+        with patch.object(batcher, "translate_batch", return_value={"translations": []}):
+            with self.assertRaises(ValueError):
+                batcher.translate_with_repair(batch, "codex", 10, Path("/tmp"))
 
 
 if __name__ == "__main__":
