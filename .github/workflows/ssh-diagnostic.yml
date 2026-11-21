@@ -1,0 +1,23 @@
+name: SSH connection diagnostic
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check server settings and connection
+        env:
+          DEPLOY_HOST: ${{ secrets.SERVER_HOST }}
+          DEPLOY_USER: ${{ secrets.SERVER_USER }}
+          DEPLOY_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        shell: bash
+        run: |
+          set -eu
+          if [ "$DEPLOY_HOST" = '104.171.133.164' ]; then echo 'host_matches_expected=yes'; else echo 'host_matches_expected=no'; fi
+          if [ "$DEPLOY_USER" = 'root' ]; then echo 'user_is_root=yes'; else echo 'user_is_root=no'; fi
+          umask 077
+          printf '%s' "$DEPLOY_KEY" | base64 -d > "$RUNNER_TEMP/diagnostic_key"
+          printf '%s\n' '104.171.133.164 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICSAIfWQbUUMcCR7sJ61HPOdo753JbdDEbzNpKxQ9fpm' > "$RUNNER_TEMP/diagnostic_hosts"
+          timeout 35 ssh -F /dev/null -o BatchMode=yes -o ConnectTimeout=25 -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/diagnostic_hosts" -i "$RUNNER_TEMP/diagnostic_key" "$DEPLOY_USER@$DEPLOY_HOST" 'echo ssh_connection_succeeded'
