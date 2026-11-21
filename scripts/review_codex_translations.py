@@ -6,6 +6,7 @@ Output remains an editorial draft; this script does not publish translations.
 
 import argparse
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -45,11 +46,13 @@ def read_complete_jsonl(path):
         return [json.loads(line) for line in stream if line.endswith("\n") and line.strip()]
 
 
-def select_batch(drafts, reviewed, batch_size, max_chars):
+def select_batch(drafts, reviewed, batch_size, max_chars, partition_index=0, partitions=1):
     selected = []
     chars = 0
     for row in drafts:
         if row["text"] in reviewed:
+            continue
+        if int(hashlib.md5(row["text"].encode("utf-8")).hexdigest(), 16) % partitions != partition_index:
             continue
         length = len(row["text"]) + len(row["ru"])
         if selected and (len(selected) >= batch_size or chars + length > max_chars):
@@ -129,15 +132,20 @@ def main():
     parser.add_argument("--max-chars", type=int, default=60000)
     parser.add_argument("--max-batches", type=int, default=0, help="0 = до конца доступных черновиков")
     parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--partitions", type=int, default=1)
+    parser.add_argument("--partition-index", type=int, default=0)
     args = parser.parse_args()
     if args.batch_size < 1 or args.max_chars < 1 or args.max_batches < 0 or args.timeout < 1:
         parser.error("Параметры размера и времени должны быть положительными")
-    log_dir = args.reviewed.parent / (args.reviewed.stem + "-logs")
+    if args.partitions < 1 or not 0 <= args.partition_index < args.partitions:
+        parser.error("Неверный номер раздела проверки")
+    log_dir = args.reviewed.parent / (args.reviewed.stem + f"-qa-{args.partition_index}-logs")
     count = 0
     while args.max_batches == 0 or count < args.max_batches:
         drafts = read_complete_jsonl(args.drafts)
         reviewed = {row["text"] for row in read_complete_jsonl(args.reviewed)}
-        batch = select_batch(drafts, reviewed, args.batch_size, args.max_chars)
+        batch = select_batch(drafts, reviewed, args.batch_size, args.max_chars,
+                             args.partition_index, args.partitions)
         if not batch:
             print("Все доступные черновики проверены", flush=True)
             break
