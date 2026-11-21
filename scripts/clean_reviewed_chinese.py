@@ -63,14 +63,18 @@ def validate(batch, response):
     if set(by_id) != {row["id"] for row in batch}:
         raise ValueError("Повторены или пропущены id")
     cleaned = []
+    rejected = []
     for row in batch:
         ru = by_id[row["id"]]
         if not RUSSIAN.search(ru) or CJK.search(ru):
-            raise ValueError(f"Исправление id={row['id']} не является полным русским текстом")
+            rejected.append(row["id"])
+            continue
         result = {key: value for key, value in row.items() if key != "id"}
         result.update(ru=ru, qa_unresolved_cjk=False, cjk_cleaned=True)
         cleaned.append(result)
-    return cleaned
+    if not cleaned:
+        raise ValueError(f"Все исправления содержат китайский текст: {rejected}")
+    return cleaned, rejected
 
 
 def clean_batch(batch, codex, timeout, log_dir):
@@ -123,7 +127,7 @@ def main():
             print("Китайских фрагментов в доступных переводах не осталось", flush=True)
             break
         print(f"Очистка {count + 1}: {len(batch)} переводов, осталось {remaining}", flush=True)
-        results = validate(batch, clean_batch(batch, args.codex, args.timeout, log_dir))
+        results, rejected = validate(batch, clean_batch(batch, args.codex, args.timeout, log_dir))
         with (args.reviewed.parent / (args.reviewed.name + ".lock")).open("a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
             with args.reviewed.open("a", encoding="utf-8") as stream:
@@ -131,7 +135,7 @@ def main():
                     stream.write(json.dumps(row, ensure_ascii=False) + "\n")
                 stream.flush()
                 os.fsync(stream.fileno())
-        print(f"Очищено {len(results)}", flush=True)
+        print(f"Очищено {len(results)}; повторно проверить {len(rejected)}", flush=True)
         count += 1
 
 
