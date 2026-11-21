@@ -1,0 +1,11 @@
+[Unit]
+Description=Check AVTOPODBOR releases every five minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=20s
+Unit=avtopodbor-release.service
+
+[Install]
+WantedBy=timers.target

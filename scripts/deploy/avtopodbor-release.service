@@ -1,0 +1,10 @@
+[Unit]
+Description=Fetch and verify AVTOPODBOR release
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/avtopodborimport/pull-release.sh
+TimeoutStartSec=15min
+UMask=0077
