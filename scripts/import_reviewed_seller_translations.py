@@ -68,6 +68,8 @@ def main():
                     dictionary_revision = NULL, updated_at = now()
                 WHERE seller_description_translations.source_text = EXCLUDED.source_text
                   AND seller_description_translations.status <> 'dictionary'
+                  AND (seller_description_translations.status <> 'reviewed'
+                       OR seller_description_translations.translated_text IS DISTINCT FROM EXCLUDED.translated_text)
             """, rows, page_size=200)
     print(f"В базу отправлено {len(rows)} проверенных переводов", flush=True)
 
