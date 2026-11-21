@@ -6,12 +6,14 @@ Review its JSONL output before adding translations to seller-dictionary.json.
 """
 
 import argparse
+import fcntl
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import tempfile
+import time
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,7 +49,8 @@ def normalize(text):
 def load_jsonl(path):
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+    with path.open(encoding="utf-8") as stream:
+        return [json.loads(line) for line in stream if line.endswith("\n") and line.strip()]
 
 
 def select_batch(rows, completed, published, batch_size, max_chars):
@@ -127,6 +130,49 @@ def validate(batch, response):
     return results
 
 
+def translate_with_repair(batch, codex, timeout, log_dir):
+    """Retry only omitted or invalid entries, retaining valid translations."""
+    accepted = {}
+    pending = batch
+    for attempt in range(3):
+        try:
+            response = translate_batch(pending, codex, timeout, log_dir)
+        except (RuntimeError, subprocess.TimeoutExpired) as error:
+            if attempt == 2:
+                raise
+            print(f"Сбой Codex ({error}); повтор через 30 секунд", flush=True)
+            time.sleep(30)
+            continue
+        raw = response.get("translations", []) if isinstance(response, dict) else []
+        if not isinstance(raw, list):
+            raw = []
+        by_id = {}
+        repeated = set()
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            identifier = item.get("id")
+            if identifier in by_id:
+                repeated.add(identifier)
+            by_id[identifier] = item
+        for row in pending:
+            identifier = row["id"]
+            if identifier in repeated or identifier not in by_id:
+                continue
+            try:
+                validate([row], {"translations": [by_id[identifier]]})
+            except (KeyError, TypeError, ValueError):
+                continue
+            accepted[identifier] = by_id[identifier]
+        pending = [row for row in batch if row["id"] not in accepted]
+        if not pending:
+            break
+        print(f"Повторная попытка для {len(pending)} описаний", flush=True)
+    if pending:
+        raise ValueError(f"После трёх попыток не переведены id: {[row['id'] for row in pending]}")
+    return validate(batch, {"translations": [accepted[row["id"]] for row in batch]})
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="JSONL: text и cars из очереди untranslated")
@@ -142,7 +188,7 @@ def main():
     rows = load_jsonl(args.source)
     published = json.loads(DICTIONARY.read_text(encoding="utf-8"))["descriptions"]
     done = {normalize(row["text"]) for row in load_jsonl(args.drafts)}
-    log_dir = args.drafts.parent / (args.drafts.stem + "-logs")
+    log_dir = args.drafts.parent / (args.drafts.stem + "-" + args.source.stem + "-logs")
     count = 0
     while args.max_batches == 0 or count < args.max_batches:
         batch, remaining = select_batch(rows, done, published, args.batch_size, args.max_chars)
@@ -150,15 +196,16 @@ def main():
             print("Все исходные описания обработаны", flush=True)
             break
         print(f"Пакет {count + 1}: {len(batch)} описаний, осталось {remaining}", flush=True)
-        response = translate_batch(batch, args.codex, args.timeout, log_dir)
-        results = validate(batch, response)
+        results = translate_with_repair(batch, args.codex, args.timeout, log_dir)
         args.drafts.parent.mkdir(parents=True, exist_ok=True)
-        with args.drafts.open("a", encoding="utf-8") as stream:
-            for row in results:
-                stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-                done.add(normalize(row["text"]))
-            stream.flush()
-            os.fsync(stream.fileno())
+        with (args.drafts.parent / (args.drafts.name + ".lock")).open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            with args.drafts.open("a", encoding="utf-8") as stream:
+                for row in results:
+                    stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    done.add(normalize(row["text"]))
+                stream.flush()
+                os.fsync(stream.fileno())
         print(f"Сохранено {len(results)}; требуют проверки чисел/остатка китайского: "
               f"{sum(bool(row['issues']) for row in results)}", flush=True)
         count += 1
