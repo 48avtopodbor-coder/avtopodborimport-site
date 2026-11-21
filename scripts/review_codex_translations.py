@@ -5,6 +5,7 @@ Output remains an editorial draft; this script does not publish translations.
 """
 
 import argparse
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -144,11 +145,13 @@ def main():
         response = review_batch(batch, args.codex, args.timeout, log_dir)
         results = apply_corrections(batch, response)
         args.reviewed.parent.mkdir(parents=True, exist_ok=True)
-        with args.reviewed.open("a", encoding="utf-8") as stream:
-            for row in results:
-                stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-            stream.flush()
-            os.fsync(stream.fileno())
+        with (args.reviewed.parent / (args.reviewed.name + ".lock")).open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            with args.reviewed.open("a", encoding="utf-8") as stream:
+                for row in results:
+                    stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
         print(f"Проверено {len(results)}; исправлено "
               f"{sum('qa_correction' in row for row in results)}; "
               f"остался китайский текст у {sum(row['qa_unresolved_cjk'] for row in results)}", flush=True)

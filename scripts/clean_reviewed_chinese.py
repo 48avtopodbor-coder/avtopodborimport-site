@@ -6,6 +6,7 @@ importer uses the latest version for each source text.
 """
 
 import argparse
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -123,11 +124,13 @@ def main():
             break
         print(f"Очистка {count + 1}: {len(batch)} переводов, осталось {remaining}", flush=True)
         results = validate(batch, clean_batch(batch, args.codex, args.timeout, log_dir))
-        with args.reviewed.open("a", encoding="utf-8") as stream:
-            for row in results:
-                stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-            stream.flush()
-            os.fsync(stream.fileno())
+        with (args.reviewed.parent / (args.reviewed.name + ".lock")).open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            with args.reviewed.open("a", encoding="utf-8") as stream:
+                for row in results:
+                    stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
         print(f"Очищено {len(results)}", flush=True)
         count += 1
 
