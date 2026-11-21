@@ -47,6 +47,20 @@ class DictionaryTests(unittest.TestCase):
         status, text = worker.translate("原版原漆，售后条款另议", self.dictionary)
         self.assertEqual((status, text), ("untranslated", None))
 
+    def test_manual_translation_preserves_export_refusal(self):
+        status, text = worker.translate("同行不批，出口勿扰。", self.dictionary)
+        self.assertEqual(status, "dictionary")
+        self.assertIn("экспорта не обращаться", text)
+
+    def test_manual_translation_preserves_average_condition(self):
+        source, translated = next(
+            (source, translated)
+            for source, translated in self.dictionary["descriptions"].items()
+            if "整体车况一般" in source and "车身没有喷漆痕迹" in source
+        )
+        self.assertIn("среднее", translated)
+        self.assertIn("следов перекраски нет", translated)
+
     def test_revision_changes_with_dictionary(self):
         canonical = json.dumps(self.dictionary, ensure_ascii=False, separators=(",", ":"))
         import hashlib
