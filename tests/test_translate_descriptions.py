@@ -78,6 +78,22 @@ class DictionaryTests(unittest.TestCase):
         self.assertIn("не сотрудничает с экспортёрами", translated)
         self.assertIn("от 10%", translated)
 
+    def test_manual_translation_discloses_failed_inspection(self):
+        status, text = worker.translate(
+            "有点小瑕疵，过不了第三方检测！但是成色新，比行情便宜很多，性价比高！来电咨询有优惠！",
+            self.dictionary,
+        )
+        self.assertEqual(status, "dictionary")
+        self.assertIn("не проходит независимую проверку", text)
+
+    def test_manual_translation_discloses_credit_only_price(self):
+        source, translated = next(
+            (source, translated)
+            for source, translated in self.dictionary["descriptions"].items()
+            if source.startswith("此价格为分期贷款价格")
+        )
+        self.assertIn("при покупке в кредит", translated)
+
     def test_revision_changes_with_dictionary(self):
         canonical = json.dumps(self.dictionary, ensure_ascii=False, separators=(",", ":"))
         import hashlib
