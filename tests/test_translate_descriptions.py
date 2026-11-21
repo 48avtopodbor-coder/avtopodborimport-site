@@ -33,6 +33,20 @@ class DictionaryTests(unittest.TestCase):
         self.assertIn("ДТП", text)
         self.assertIn("пожара нет", text)
 
+    def test_new_short_description(self):
+        status, text = worker.translate("全车原版原漆，保实表", self.dictionary)
+        self.assertEqual(status, "dictionary")
+        self.assertIn("достоверность пробега", text)
+
+    def test_accident_disclosure_is_not_hidden(self):
+        status, text = worker.translate("此车为事故车，低于市场价销售", self.dictionary)
+        self.assertEqual(status, "dictionary")
+        self.assertIn("был в ДТП", text)
+
+    def test_unrecognized_dealer_conditions_are_not_truncated(self):
+        status, text = worker.translate("原版原漆，售后条款另议", self.dictionary)
+        self.assertEqual((status, text), ("untranslated", None))
+
     def test_revision_changes_with_dictionary(self):
         canonical = json.dumps(self.dictionary, ensure_ascii=False, separators=(",", ":"))
         import hashlib
