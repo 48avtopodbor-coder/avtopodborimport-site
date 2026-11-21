@@ -35,6 +35,12 @@ class BatchTranslationTests(unittest.TestCase):
             {"id": 1, "ru": "2023 год, пробег 50 000 км, 原漆"}]})
         self.assertEqual(len(result[0]["issues"]), 2)
 
+    def test_latin_model_name_is_a_valid_translation(self):
+        batch = [{"id": 1, "text": "奔驰GLB", "cars": 1}]
+        result = batcher.validate(batch, {"translations": [
+            {"id": 1, "ru": "Mercedes-Benz GLB."}]})
+        self.assertEqual(result[0]["ru"], "Mercedes-Benz GLB.")
+
 
 if __name__ == "__main__":
     unittest.main()
