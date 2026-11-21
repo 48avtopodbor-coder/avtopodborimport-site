@@ -6,6 +6,7 @@ Review its JSONL output before adding translations to seller-dictionary.json.
 """
 
 import argparse
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -48,7 +49,8 @@ def normalize(text):
 def load_jsonl(path):
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+    with path.open(encoding="utf-8") as stream:
+        return [json.loads(line) for line in stream if line.endswith("\n") and line.strip()]
 
 
 def select_batch(rows, completed, published, batch_size, max_chars):
@@ -186,7 +188,7 @@ def main():
     rows = load_jsonl(args.source)
     published = json.loads(DICTIONARY.read_text(encoding="utf-8"))["descriptions"]
     done = {normalize(row["text"]) for row in load_jsonl(args.drafts)}
-    log_dir = args.drafts.parent / (args.drafts.stem + "-logs")
+    log_dir = args.drafts.parent / (args.drafts.stem + "-" + args.source.stem + "-logs")
     count = 0
     while args.max_batches == 0 or count < args.max_batches:
         batch, remaining = select_batch(rows, done, published, args.batch_size, args.max_chars)
@@ -196,12 +198,14 @@ def main():
         print(f"Пакет {count + 1}: {len(batch)} описаний, осталось {remaining}", flush=True)
         results = translate_with_repair(batch, args.codex, args.timeout, log_dir)
         args.drafts.parent.mkdir(parents=True, exist_ok=True)
-        with args.drafts.open("a", encoding="utf-8") as stream:
-            for row in results:
-                stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-                done.add(normalize(row["text"]))
-            stream.flush()
-            os.fsync(stream.fileno())
+        with (args.drafts.parent / (args.drafts.name + ".lock")).open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            with args.drafts.open("a", encoding="utf-8") as stream:
+                for row in results:
+                    stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    done.add(normalize(row["text"]))
+                stream.flush()
+                os.fsync(stream.fileno())
         print(f"Сохранено {len(results)}; требуют проверки чисел/остатка китайского: "
               f"{sum(bool(row['issues']) for row in results)}", flush=True)
         count += 1

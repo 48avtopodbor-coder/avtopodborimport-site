@@ -1,4 +1,5 @@
 import importlib.util
+import tempfile
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -59,6 +60,12 @@ class BatchTranslationTests(unittest.TestCase):
         with patch.object(batcher, "translate_batch", return_value={"translations": []}):
             with self.assertRaises(ValueError):
                 batcher.translate_with_repair(batch, "codex", 10, Path("/tmp"))
+
+    def test_incomplete_last_line_is_ignored_while_other_worker_writes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "drafts.jsonl"
+            path.write_text('{"text":"原漆","ru":"Заводская окраска"}\n{"text":')
+            self.assertEqual(len(batcher.load_jsonl(path)), 1)
 
 
 if __name__ == "__main__":
