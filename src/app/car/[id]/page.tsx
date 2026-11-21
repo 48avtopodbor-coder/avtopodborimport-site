@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { displayValue, firstDisplayValue } from "@/lib/format";
 import CarGallery from "@/components/car/CarGallery";
 import { modelEquipment } from "@/lib/equipment";
-import { sellerDescription as translateSellerDescription } from "@/lib/seller-description";
+import { sellerDictionaryRevision } from "@/lib/seller-description";
 
 interface Car {
   listing_id: string;
@@ -21,6 +21,7 @@ interface Car {
   city_display: string;
   distance_km: number | null;
   description: string | null;
+  translated_description: string | null;
   engine_ml: number | null;
   tires: string | null;
   photos: string | null;
@@ -76,13 +77,17 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
     pool.query(
       `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
               c.fuel, c.gearbox, c.color, c.city, c.engine_ml, c.tires, c.description,
+              tr.translated_text AS translated_description,
               COALESCE(ct.city_ru, c.city) as city_display,
               ct.distance_km,
               c.photos, c.images, c.local_photo, c.local_photo_2, c.scraped_at
        FROM cars c
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
+       LEFT JOIN seller_description_translations tr
+         ON tr.source_hash = md5(c.description) AND tr.source_text = c.description
+         AND tr.status = 'dictionary' AND tr.dictionary_revision = $2
        WHERE c.listing_id = $1 AND c.is_active = 1`,
-      [id],
+      [id, sellerDictionaryRevision],
     ),
     // Комплектация связана с машиной через cars.spec_id, а не через номер объявления
     pool.query(
@@ -99,7 +104,16 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
   const car: Car = carResult.rows[0];
   const spec: Spec | null = specsResult.rows[0] ?? null;
   const equipment = modelEquipment(spec?.params_json);
-  const sellerDescription = translateSellerDescription(car.description);
+  const sourceDescription = car.description?.trim();
+  const sellerDescription = sourceDescription
+    ? {
+        text: car.translated_description ?? sourceDescription,
+        translated:
+          Boolean(car.translated_description) ||
+          !/[\u3400-\u9fff\uf900-\ufaff]/u.test(sourceDescription),
+        dictionary: Boolean(car.translated_description),
+      }
+    : null;
   const engineMl = [spec?.engine_ml, car.engine_ml].find(
     (value) => value != null && Number.isFinite(value) && value > 0,
   );
@@ -265,21 +279,24 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               Информация со слов продавца. Состояние автомобиля уточняйте при осмотре.
               {sellerDescription.dictionary && " Перевод с китайского по словарю."}
             </p>
-            {sellerDescription.translated ? (
-              <p className="bg-graphite-800 rounded-xl p-5 text-white font-body text-sm leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
-                {sellerDescription.text}
-              </p>
-            ) : (
-              <div className="bg-graphite-800 rounded-xl p-5 text-gray-400 font-body text-sm">
-                Автоматический перевод пока недоступен. Уточните информацию у нас.
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-white">Оригинал описания</summary>
-                  <p lang="zh" className="mt-3 whitespace-pre-line [overflow-wrap:anywhere]">
-                    {sellerDescription.text}
-                  </p>
-                </details>
-              </div>
-            )}
+            <div className="bg-graphite-800 rounded-xl p-5 text-gray-400 font-body text-sm">
+              {sellerDescription.translated ? (
+                <p className="text-white leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
+                  {sellerDescription.text}
+                </p>
+              ) : (
+                <p>Автоматический перевод пока недоступен. Уточните информацию у нас.</p>
+              )}
+              <details className="group mt-3">
+                <summary className="cursor-pointer text-white">
+                  <span className="group-open:hidden">Показать оригинал</span>
+                  <span className="hidden group-open:inline">Скрыть оригинал</span>
+                </summary>
+                <p className="mt-3 whitespace-pre-line [overflow-wrap:anywhere]">
+                  {car.description}
+                </p>
+              </details>
+            </div>
           </section>
         )}
 

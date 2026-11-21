@@ -68,20 +68,28 @@ def spec_upsert_sql():
             f"ON CONFLICT (spec_id) DO UPDATE SET {', '.join(sets)}")
 
 
-def open_source():
+def open_source(published=False):
     if not os.path.exists(SQLITE_PATH):
         sys.exit(f"нет файла {SQLITE_PATH}")
-    age = time.time() - os.path.getmtime(SQLITE_PATH)
-    if age < 120:
+    before = os.stat(SQLITE_PATH)
+    age = time.time() - before.st_mtime
+    if age < 120 and not published:
         sys.exit(f"копия обновилась {age:.0f} с назад, возможно, ещё пишется — пропуск")
     # Только чтение и без блокировок: копия не меняется, а у postgres нет прав на запись в папку
     sq = sqlite3.connect(f"file:{SQLITE_PATH}?mode=ro&immutable=1", uri=True)
+    after = os.stat(SQLITE_PATH)
+    if (before.st_dev, before.st_ino, before.st_mtime_ns, before.st_size) != (
+        after.st_dev, after.st_ino, after.st_mtime_ns, after.st_size
+    ):
+        sq.close()
+        sys.exit("копия базы изменилась во время открытия — повторите импорт")
     for table, cols in (("cars", CAR_COLS), ("specs", SPEC_SRC)):
         have = {row[1] for row in sq.execute(f"PRAGMA table_info({table})")}
         missing = [c for c in cols if c not in have]
         if missing:
             sys.exit(f"в {SQLITE_PATH}, таблица {table}, нет столбцов: {', '.join(missing)}")
-    return sq, age
+    identity = f"{before.st_dev}:{before.st_ino}:{before.st_mtime_ns}:{before.st_size}"
+    return sq, before, identity
 
 
 def copy_table(sq, cur, sql, src_cols, table):
@@ -100,6 +108,7 @@ def copy_table(sq, cur, sql, src_cols, table):
 def main():
     dry = "--dry-run" in sys.argv
     force = "--force" in sys.argv
+    published = "--published" in sys.argv
     lock = open(LOCK_PATH, "w")
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -107,23 +116,23 @@ def main():
         sys.exit("импорт уже идёт — пропуск")
 
     t0 = time.time()
-    sq, age = open_source()
+    sq, source_stat, identity = open_source(published=published)
     n_cars, n_active = sq.execute(
         "SELECT count(*), sum(is_active = 1 AND price_cny > 0) FROM cars").fetchone()
     n_specs = sq.execute("SELECT count(*) FROM specs").fetchone()[0]
-    stamp = time.strftime("%Y-%m-%d %H:%M", time.localtime(os.path.getmtime(SQLITE_PATH)))
+    stamp = time.strftime("%Y-%m-%d %H:%M", time.localtime(source_stat.st_mtime))
     print(f"{time.strftime('%Y-%m-%d %H:%M')} источник {SQLITE_PATH} от {stamp}: "
           f"машин {n_cars} (в продаже с ценой {n_active}), комплектаций {n_specs}")
     if dry:
         print("проверка источника: ok, в базу сайта ничего не записано")
         return
 
-    mtime = f"{os.path.getmtime(SQLITE_PATH):.0f}"
     try:
-        last = open(STATE_PATH).read().strip()
+        with open(STATE_PATH) as state:
+            last = state.read().strip()
     except OSError:
         last = ""
-    if last == mtime and not force:
+    if last == identity and not force:
         print("копия не менялась с прошлого импорта — пропуск")
         return
 
@@ -139,7 +148,7 @@ def main():
         pg.close()
         sq.close()
     with open(STATE_PATH, "w") as f:
-        f.write(mtime + "\n")
+        f.write(identity + "\n")
     print(f"готово за {time.time() - t0:.0f} с: комплектаций {s}, машин {c}; "
           f"на сайте машин {site_total}, в продаже с ценой {site_active}")
 

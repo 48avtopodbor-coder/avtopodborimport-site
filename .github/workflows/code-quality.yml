@@ -20,4 +20,5 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: node --test tests/seller-description.test.mjs
+      - run: python3 -m unittest discover -s tests -p 'test_*.py'
       - run: npm run build
