@@ -54,6 +54,8 @@ jobs:
           umask 077
           printf '%s' "$ENCODED_DEPLOY_KEY" | base64 -d > "$RUNNER_TEMP/deploy_key"
           test -s "$RUNNER_TEMP/deploy_key"
+          # The SSH action runs in a separate container with a different UID.
+          chmod 644 "$RUNNER_TEMP/deploy_key"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -72,3 +74,7 @@ jobs:
             docker compose pull
             docker compose up -d
             docker image prune -f
+
+      - name: Remove temporary SSH key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key"
