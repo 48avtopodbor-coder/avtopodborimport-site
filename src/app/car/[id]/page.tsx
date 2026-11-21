@@ -85,7 +85,8 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
        LEFT JOIN seller_description_translations tr
          ON tr.source_hash = md5(c.description) AND tr.source_text = c.description
-         AND tr.status = 'dictionary' AND tr.dictionary_revision = $2
+         AND (tr.status = 'reviewed'
+              OR (tr.status = 'dictionary' AND tr.dictionary_revision = $2))
        WHERE c.listing_id = $1 AND c.is_active = 1`,
       [id, sellerDictionaryRevision],
     ),
@@ -277,7 +278,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
             <h2 className="font-heading font-bold text-lg text-white mb-2">Описание продавца</h2>
             <p className="text-gray-400 font-body text-sm mb-4">
               Информация со слов продавца. Состояние автомобиля уточняйте при осмотре.
-              {sellerDescription.dictionary && " Перевод с китайского по словарю."}
+              {sellerDescription.dictionary && " Перевод с китайского; оригинал доступен ниже."}
             </p>
             <div className="bg-graphite-800 rounded-xl p-5 text-gray-400 font-body text-sm">
               {sellerDescription.translated ? (

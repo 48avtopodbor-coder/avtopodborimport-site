@@ -69,7 +69,8 @@ def main():
                 with connection.cursor() as cursor:
                     cursor.execute("""
                         SELECT source_hash, source_text FROM seller_description_translations
-                        WHERE dictionary_revision IS DISTINCT FROM %s
+                        WHERE status <> 'reviewed'
+                          AND dictionary_revision IS DISTINCT FROM %s
                         ORDER BY CASE status WHEN 'dictionary' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END,
                                  updated_at, source_hash
                         LIMIT %s FOR UPDATE SKIP LOCKED

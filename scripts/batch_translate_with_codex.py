@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DICTIONARY = ROOT / "src/lib/seller-dictionary.json"
 CJK = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
 RUSSIAN = re.compile(r"[А-Яа-яЁё]")
+LATIN = re.compile(r"[A-Za-z]")
 NUMBERS = re.compile(r"\d+(?:[.,]\d+)?")
 SCHEMA = {
     "type": "object",
@@ -109,7 +110,8 @@ def validate(batch, response):
     results = []
     for row in batch:
         translated = by_id[row["id"]]
-        if not translated or not RUSSIAN.search(translated):
+        brand_only = len(row["text"]) < 30 and LATIN.search(translated) and not CJK.search(translated)
+        if not translated or (not RUSSIAN.search(translated) and not brand_only):
             raise ValueError(f"Нет русского перевода для id={row['id']}")
         issues = []
         if CJK.search(translated):
