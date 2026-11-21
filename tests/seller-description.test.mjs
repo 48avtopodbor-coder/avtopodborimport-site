@@ -3,15 +3,21 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import ts from "typescript";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const source = fs.readFileSync(path.join(directory, "../src/lib/seller-description.ts"), "utf8");
 const javascript = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS },
+  compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true },
 }).outputText;
 const compiled = { exports: {} };
-new Function("module", "exports", javascript)(compiled, compiled.exports);
+const requireForSource = createRequire(path.join(directory, "../src/lib/seller-description.ts"));
+new Function("module", "exports", "require", javascript)(
+  compiled,
+  compiled.exports,
+  requireForSource,
+);
 const { sellerDescription } = compiled.exports;
 
 test("переводит смешанное объявление целиком и сохраняет условия продавца", () => {
