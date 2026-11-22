@@ -24,6 +24,7 @@ const BRANDS = [
   "Audi",
   "Volkswagen",
   "Skoda",
+  "Mazda",
 ];
 
 const BODY_TYPES = ["Любой кузов", "Седан", "Кроссовер", "Внедорожник", "Хэтчбек", "Минивэн"];
