@@ -72,8 +72,13 @@ export default async function UsedCatalogPage({
   let idx = 1;
 
   if (sp.brand) {
-    conditions.push(`c.brand_ru = $${idx++}`);
+    conditions.push(`(b.slug = $${idx} OR c.brand_ru = $${idx})`);
+    idx++;
     params.push(sp.brand);
+  }
+  if (sp.model) {
+    conditions.push(`c.model_slug = $${idx++}`);
+    params.push(sp.model);
   }
   if (sp.fuel) {
     conditions.push(`lower(COALESCE(c.fuel, s.fuel)) = lower($${idx++})`);
@@ -90,6 +95,7 @@ export default async function UsedCatalogPage({
               COALESCE(ct.city_ru, c.city) as city_display,
               c.photos, c.images, c.local_photo
        FROM cars c
+       LEFT JOIN brands b ON b.id = c.brand_id
        LEFT JOIN specs s ON s.spec_id = c.spec_id
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
        WHERE ${where}
@@ -98,13 +104,15 @@ export default async function UsedCatalogPage({
       [...params, limit, offset],
     ),
     pool.query(
-      `SELECT COUNT(*) FROM cars c LEFT JOIN specs s ON s.spec_id = c.spec_id WHERE ${where}`,
+      `SELECT COUNT(*) FROM cars c LEFT JOIN brands b ON b.id = c.brand_id
+       LEFT JOIN specs s ON s.spec_id = c.spec_id WHERE ${where}`,
       params,
     ),
-    pool.query<{ brand_ru: string; cnt: string }>(
-      `SELECT brand_ru, COUNT(*) as cnt FROM cars
-       WHERE is_active=1 AND price_cny>0 AND trim(brand_ru) <> ''
-       GROUP BY brand_ru ORDER BY cnt DESC, brand_ru`,
+    pool.query<{ brand_ru: string; brand_slug: string | null; cnt: string }>(
+      `SELECT c.brand_ru, b.slug AS brand_slug, COUNT(*) as cnt FROM cars c
+       LEFT JOIN brands b ON b.id = c.brand_id
+       WHERE c.is_active=1 AND c.price_cny>0 AND trim(c.brand_ru) <> ''
+       GROUP BY c.brand_ru, b.slug ORDER BY cnt DESC, c.brand_ru`,
     ),
   ]);
 
@@ -112,9 +120,11 @@ export default async function UsedCatalogPage({
   const total = parseInt(countResult.rows[0].count);
   const totalPages = Math.ceil(total / limit);
   const brands = brandsResult.rows;
-  const brandNames = brands.map((b) => b.brand_ru);
-  if (sp.brand && !brandNames.includes(sp.brand)) brandNames.push(sp.brand);
-  brandNames.sort((a, b) => a.localeCompare(b, "ru"));
+  const brandNames = brands.map((b) => ({ name: b.brand_ru, value: b.brand_slug || b.brand_ru }));
+  if (sp.brand && !brandNames.some((b) => b.value === sp.brand || b.name === sp.brand)) {
+    brandNames.push({ name: sp.brand, value: sp.brand });
+  }
+  brandNames.sort((a, b) => a.name.localeCompare(b.name, "ru"));
   const query = new URLSearchParams(sp).toString();
 
   return (
@@ -158,8 +168,8 @@ export default async function UsedCatalogPage({
 
         <MobileBrandSelect value={usedBrandHref(sp.brand || "", query)}>
           <option value={usedBrandHref("", query)}>Все марки</option>
-          {brandNames.map((name) => (
-            <option key={name} value={usedBrandHref(name, query)}>
+          {brandNames.map(({ name, value }) => (
+            <option key={value} value={usedBrandHref(value, query)}>
               {name}
             </option>
           ))}
@@ -184,9 +194,11 @@ export default async function UsedCatalogPage({
                 {brands.slice(0, 20).map((b) => (
                   <Link
                     key={b.brand_ru}
-                    href={usedBrandHref(b.brand_ru, query)}
+                    href={usedBrandHref(b.brand_slug || b.brand_ru, query)}
                     className={`flex justify-between text-sm font-body py-1 px-2 rounded transition-colors ${
-                      sp.brand === b.brand_ru ? "text-orange-400" : "text-gray-400 hover:text-white"
+                      sp.brand === b.brand_ru || sp.brand === b.brand_slug
+                        ? "text-orange-400"
+                        : "text-gray-400 hover:text-white"
                     }`}
                   >
                     <span>{b.brand_ru}</span>
@@ -199,6 +211,17 @@ export default async function UsedCatalogPage({
 
           {/* Карточки */}
           <div className="flex-1">
+            {total === 0 && (
+              <div className="rounded-xl bg-graphite-800 p-6 font-body text-gray-400">
+                <p>Пока нет автомобилей этой марки или модели.</p>
+                <Link
+                  href="/catalog/used"
+                  className="mt-3 inline-block text-orange-400 underline underline-offset-4"
+                >
+                  Смотреть весь каталог
+                </Link>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {cars.map((car) => {
                 const remotePhoto = getFirstPhoto(car);

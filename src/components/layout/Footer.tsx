@@ -69,7 +69,8 @@ export default function Footer() {
 
         <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-gray-600 font-body text-xs">
-            © 2024 AVTOPODBOR IMPORT. Расчёты предварительные.
+            © 2024 AVTOPODBOR IMPORT. Расчёты предварительные. Названия и логотипы марок принадлежат
+            их владельцам и используются для обозначения автомобилей.
           </p>
           <div className="flex items-center gap-4">
             <Link

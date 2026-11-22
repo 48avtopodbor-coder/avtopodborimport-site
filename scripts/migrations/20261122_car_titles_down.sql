@@ -1,0 +1,12 @@
+BEGIN;
+DROP INDEX IF EXISTS cars_brand_model_slug_idx;
+DROP INDEX IF EXISTS cars_brand_id_idx;
+ALTER TABLE cars DROP COLUMN IF EXISTS trim;
+ALTER TABLE cars DROP COLUMN IF EXISTS model_slug;
+ALTER TABLE cars DROP COLUMN IF EXISTS model_name;
+ALTER TABLE cars DROP COLUMN IF EXISTS brand_id;
+DROP TABLE IF EXISTS unmapped_brand_names;
+DROP TABLE IF EXISTS model_aliases;
+DROP TABLE IF EXISTS brand_aliases;
+DROP TABLE IF EXISTS brands;
+COMMIT;
