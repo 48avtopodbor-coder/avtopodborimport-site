@@ -6,6 +6,7 @@ import unicodedata
 
 YEAR_MARKER = re.compile(r"\s+20\d{2}款(?:\s+|$)")
 LATIN_MODEL = re.compile(r"^[A-Za-z][A-Za-z0-9 .+/-]*$")
+LATIN_TRIM = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .+/-]*$")
 TRIM_TOKENS = re.compile(r"[A-Za-z0-9]+(?:[.][0-9]+)?")
 
 
@@ -70,6 +71,6 @@ def extract_title(
                 trim = f"{code.group(1)} Pro"
         elif brand_slug == "li-auto" and re.fullmatch(r"(?:Pro|Max|Ultra)", tail, re.I):
             trim = tail
-        elif LATIN_MODEL.fullmatch(tail) and len(TRIM_TOKENS.findall(tail)) <= 3:
+        elif LATIN_TRIM.fullmatch(tail) and len(TRIM_TOKENS.findall(tail)) <= 3:
             trim = tail
     return name, slug, trim

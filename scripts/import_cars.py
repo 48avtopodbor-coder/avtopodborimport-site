@@ -18,6 +18,8 @@ import sys
 import time
 from collections import Counter
 
+# The production cron runs this file directly, while tests load it by path.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from car_titles import extract_title, normalize_brand
 
 SQLITE_PATH = os.environ.get("SQLITE_PATH", "/srv/che168/cars.db")
