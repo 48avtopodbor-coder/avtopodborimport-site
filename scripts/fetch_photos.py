@@ -11,6 +11,8 @@
 Первое фото сохраняется как <номер объявления>.<расширение>, следующие — как
 <номер объявления>_2 и <номер объявления>_3. Nginx отдаёт их из /photos/;
 PostgreSQL хранит пути в local_photo, local_photo_2 и local_photo_3.
+Размер файла не ограничен: полученные изображения сохраняются без сжатия
+и изменения разрешения в том качестве, которое отдаёт URL источника.
 
 Запуск на сервере Timeweb Cloud от root:
     python3 /opt/avtopodborimport/fetch_photos.py             # до 2000 фото, до 40 минут
@@ -45,7 +47,6 @@ SSH_CMD = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=20",
            "-o", "ServerAliveInterval=30", "hosting", REMOTE_SHELL]
 FETCH_CMD = shlex.split(os.environ["PHOTOS_FETCH_CMD"]) if os.environ.get("PHOTOS_FETCH_CMD") else SSH_CMD
 
-MAX_BYTES = 3 * 1024 * 1024
 MAX_REFUSED = 3
 SAVE_EVERY = 200
 
@@ -107,7 +108,7 @@ UA = "Python-urllib/%d.%d" % sys.version_info[:2]
 REFUSED = (403, 429, 514)
 
 
-def fetch(conns, host, path, max_bytes):
+def fetch(conns, host, path):
     for attempt in (1, 2):
         conn = conns.get(host)
         if conn is None:
@@ -116,11 +117,6 @@ def fetch(conns, host, path, max_bytes):
         try:
             conn.request("GET", path, headers={"User-Agent": UA, "Accept": "image/webp,image/*;q=0.8"})
             resp = conn.getresponse()
-            length = resp.getheader("Content-Length") or ""
-            if length.isdigit() and int(length) > max_bytes:
-                conn.close()
-                conns.pop(host, None)
-                return resp.status, None, "too-big"
             body = resp.read()
             if resp.will_close:
                 conn.close()
@@ -153,8 +149,8 @@ def main(params):
             stats["failed"].append(label)
             continue
         path = u.path + ("?" + u.query if u.query else "")
-        status, body, ctype = fetch(conns, host, path, p["max_bytes"])
-        if status == 200 and body and len(body) <= p["max_bytes"] and ctype.startswith("image/"):
+        status, body, ctype = fetch(conns, host, path)
+        if status == 200 and body and ctype.startswith("image/"):
             info = tarfile.TarInfo("%s__p%s" % (listing_id, photo_index))
             info.size = len(body)
             info.mtime = int(time.time())
@@ -368,7 +364,7 @@ def main():
     started = time.time()
     program = REMOTE_CODE + "\nmain(%r)\n" % json.dumps({
         "items": todo, "minutes": args.minutes, "pause": args.pause,
-        "max_bytes": MAX_BYTES, "max_refused": MAX_REFUSED,
+        "max_refused": MAX_REFUSED,
     })
     errlog = tempfile.TemporaryFile()
     proc = subprocess.Popen(FETCH_CMD, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errlog)
@@ -390,7 +386,7 @@ def main():
                 if member.name == ".start":
                     continue
                 target = wanted.get(member.name)
-                if target is None or not member.isfile() or member.size > MAX_BYTES:
+                if target is None or not member.isfile():
                     continue
                 data = tf.extractfile(member).read()
                 ext = image_ext(data)
