@@ -1,0 +1,9 @@
+[Unit]
+Description=Backfill three local photos per car
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=45min
+Nice=10
+ExecStart=/bin/sh /opt/avtopodborimport/run_photo_batch.sh
