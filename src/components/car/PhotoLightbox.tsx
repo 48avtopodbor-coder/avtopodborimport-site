@@ -235,7 +235,7 @@ export default function PhotoLightbox({
               alt={`${title} — фото ${index + 1}`}
               fill
               sizes="100vw"
-              unoptimized={source.includes("/photos/")}
+              unoptimized
               loading="eager"
               fetchPriority="high"
               className={styles.photo}
@@ -281,7 +281,7 @@ export default function PhotoLightbox({
                 alt=""
                 fill
                 sizes="84px"
-                unoptimized={src.includes("/photos/")}
+                unoptimized
                 loading="lazy"
                 className={styles.thumbImage}
               />

@@ -42,7 +42,7 @@ export default function CarGallery({ photos, alt }: CarGalleryProps) {
                 alt={`${alt} — фото ${activeIndex + 1}`}
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
-                unoptimized={activePhoto.includes("/photos/")}
+                unoptimized
                 className="object-cover"
                 loading={activeIndex === 0 ? "eager" : "lazy"}
                 fetchPriority={activeIndex === 0 ? "high" : "auto"}
@@ -81,14 +81,7 @@ export default function CarGallery({ photos, alt }: CarGalleryProps) {
                   : "border-transparent opacity-70 hover:opacity-100"
               }`}
             >
-              <Image
-                src={src}
-                alt=""
-                fill
-                sizes="80px"
-                unoptimized={src.includes("/photos/")}
-                className="object-cover"
-              />
+              <Image src={src} alt="" fill sizes="80px" unoptimized className="object-cover" />
             </button>
           ))}
         </div>
