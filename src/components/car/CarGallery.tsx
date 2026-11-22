@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import Image from "next/image";
+import PhotoLightbox from "./PhotoLightbox";
 
 interface CarGalleryProps {
   photos: string[];
@@ -9,31 +11,54 @@ interface CarGalleryProps {
 
 export default function CarGallery({ photos, alt }: CarGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const openerRef = useRef<HTMLButtonElement | null>(null);
   const activePhoto = photos[activeIndex];
+
+  function openLightbox(index: number, opener: HTMLButtonElement) {
+    openerRef.current = opener;
+    setLightboxIndex(index);
+  }
+
+  function closeLightbox() {
+    setLightboxIndex(null);
+    requestAnimationFrame(() => openerRef.current?.focus());
+  }
 
   return (
     <section aria-label="Фотографии автомобиля">
       <div className="relative mb-3 aspect-[4/3] overflow-hidden rounded-xl bg-graphite-800">
         {activePhoto ? (
-          <img
-            key={activePhoto}
-            src={activePhoto}
-            alt={`${alt} — фото ${activeIndex + 1}`}
-            className="h-full w-full object-cover"
-            loading="eager"
-            fetchPriority={activeIndex === 0 ? "high" : "auto"}
-            decoding="async"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-gray-600">
-            <svg className="h-20 w-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+          <>
+            <button
+              type="button"
+              aria-label={`Открыть фото ${activeIndex + 1} на весь экран`}
+              onClick={(event) => openLightbox(activeIndex, event.currentTarget)}
+              className="relative block h-full w-full cursor-zoom-in"
+            >
+              <Image
+                key={activePhoto}
+                src={activePhoto}
+                alt={`${alt} — фото ${activeIndex + 1}`}
+                fill
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                unoptimized={activePhoto.includes("/photos/")}
+                className="object-cover"
+                loading={activeIndex === 0 ? "eager" : "lazy"}
+                fetchPriority={activeIndex === 0 ? "high" : "auto"}
               />
-            </svg>
+            </button>
+            <button
+              type="button"
+              onClick={(event) => openLightbox(0, event.currentTarget)}
+              className="absolute bottom-3 right-3 z-10 flex min-h-11 items-center rounded-full bg-black/75 px-4 text-sm font-semibold text-white backdrop-blur-sm hover:bg-black/90"
+            >
+              Все фото · {photos.length}
+            </button>
+          </>
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-gray-500">
+            Фото пока нет
           </div>
         )}
       </div>
@@ -42,27 +67,40 @@ export default function CarGallery({ photos, alt }: CarGalleryProps) {
         <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Выбрать фото">
           {photos.map((src, index) => (
             <button
-              key={src}
+              key={`${src}-${index}`}
               type="button"
-              aria-label={`Показать фото ${index + 1}`}
-              aria-pressed={activeIndex === index}
-              onClick={() => setActiveIndex(index)}
-              className={`h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 bg-graphite-800 transition-opacity ${
+              aria-label={`Открыть фото ${index + 1} на весь экран`}
+              aria-current={activeIndex === index ? "true" : undefined}
+              onClick={(event) => {
+                setActiveIndex(index);
+                openLightbox(index, event.currentTarget);
+              }}
+              className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 bg-graphite-800 transition-opacity ${
                 activeIndex === index
                   ? "border-orange-400 opacity-100"
                   : "border-transparent opacity-70 hover:opacity-100"
               }`}
             >
-              <img
+              <Image
                 src={src}
                 alt=""
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
+                fill
+                sizes="80px"
+                unoptimized={src.includes("/photos/")}
+                className="object-cover"
               />
             </button>
           ))}
         </div>
+      )}
+
+      {lightboxIndex !== null && (
+        <PhotoLightbox
+          photos={photos}
+          initialIndex={lightboxIndex}
+          title={alt}
+          onClose={closeLightbox}
+        />
       )}
     </section>
   );

@@ -56,11 +56,13 @@ function getPhotos(car: Car): string[] {
   try {
     if (car.photos) {
       const arr = JSON.parse(car.photos);
-      if (Array.isArray(arr)) urls.push(...arr);
+      if (Array.isArray(arr))
+        urls.push(...arr.filter((url): url is string => typeof url === "string" && url.length > 0));
     }
     if (car.images && urls.length === 0) {
       const arr = JSON.parse(car.images);
-      if (Array.isArray(arr)) urls.push(...arr);
+      if (Array.isArray(arr))
+        urls.push(...arr.filter((url): url is string => typeof url === "string" && url.length > 0));
     }
   } catch {}
   return urls;
@@ -122,18 +124,16 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
   const tires = firstDisplayValue(spec?.tires, car.tires);
   const remotePhotos = getPhotos(car);
 
-  // Локальные копии отдаются с сайта без ожидания китайского сервера.
-  // Пока обложки нет, сохраняем прежний прокси-fallback.
-  const photoSrcs: string[] = [];
-  if (car.local_photo) {
-    photoSrcs.push(car.local_photo);
-    if (car.local_photo_2) photoSrcs.push(car.local_photo_2);
-    if (car.local_photo_3) photoSrcs.push(car.local_photo_3);
-  } else {
-    remotePhotos.slice(0, 3).forEach((url) => {
-      photoSrcs.push(`/api/img?url=${encodeURIComponent(url)}`);
-    });
-  }
+  // Порядок берём из базы. Первые три фото подменяем локальными копиями, если они есть.
+  const localPhotos = [car.local_photo, car.local_photo_2, car.local_photo_3];
+  const photoSrcs = Array.from(
+    { length: Math.max(remotePhotos.length, localPhotos.length) },
+    (_, index) => {
+      if (localPhotos[index]) return localPhotos[index];
+      const remotePhoto = remotePhotos[index];
+      return remotePhoto ? `/api/img?url=${encodeURIComponent(remotePhoto)}` : null;
+    },
+  ).filter((url): url is string => url !== null);
 
   return (
     <div className="min-h-screen bg-graphite-900">
@@ -178,7 +178,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
           <CarGallery
             key={car.listing_id}
             photos={photoSrcs}
-            alt={`${car.brand_ru} ${car.model}`}
+            alt={`${car.brand_ru} ${cleanModel(car.model)}`}
           />
 
           {/* Основная информация */}
