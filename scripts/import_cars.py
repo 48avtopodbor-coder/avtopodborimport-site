@@ -16,6 +16,9 @@ import os
 import sqlite3
 import sys
 import time
+from collections import Counter
+
+from car_titles import extract_title, normalize_brand
 
 SQLITE_PATH = os.environ.get("SQLITE_PATH", "/srv/che168/cars.db")
 PG_DSN = os.environ.get(
@@ -36,6 +39,8 @@ CAR_COLS = [
     "details_json", "drive", "params_text", "power_hp", "engine_ml", "photos", "photo_count",
     "tires", "scraped_at", "updated_at",
 ]
+CAR_DERIVED_COLS = ["brand_id", "model_name", "model_slug", "trim"]
+CAR_DST_COLS = CAR_COLS + CAR_DERIVED_COLS
 # Эти поля всегда берём из сборщика как есть: продана ли машина и почём.
 CAR_EXACT = {"is_active", "price_cny", "price_wan", "updated_at"}
 # Эти поля не меняем после первой загрузки: ключ и время появления (от него порядок «сначала свежие»).
@@ -50,15 +55,15 @@ SPEC_DST = ["spec_id", "fuel", "drive", "gearbox", "power_hp", "engine_ml",
 
 def car_upsert_sql():
     sets = []
-    for c in CAR_COLS:
+    for c in CAR_DST_COLS:
         if c in CAR_KEEP:
             continue
-        if c in CAR_EXACT:
+        if c in CAR_EXACT or c in CAR_DERIVED_COLS:
             sets.append(f"{c} = EXCLUDED.{c}")
         else:
             # Не затираем уже собранные данные пустым значением
             sets.append(f"{c} = COALESCE(EXCLUDED.{c}, cars.{c})")
-    return (f"INSERT INTO cars ({', '.join(CAR_COLS)}) VALUES %s "
+    return (f"INSERT INTO cars ({', '.join(CAR_DST_COLS)}) VALUES %s "
             f"ON CONFLICT (listing_id) DO UPDATE SET {', '.join(sets)}")
 
 
@@ -92,16 +97,52 @@ def open_source(published=False):
     return sq, before, identity
 
 
-def copy_table(sq, cur, sql, src_cols, table):
+def load_title_catalog(cur):
+    cur.execute("SELECT a.alias_norm, b.id, b.slug FROM brand_aliases a JOIN brands b ON b.id = a.brand_id")
+    brands = {alias: (brand_id, slug) for alias, brand_id, slug in cur.fetchall()}
+    cur.execute("SELECT b.slug, m.source_series, m.model_name, m.model_slug FROM model_aliases m JOIN brands b ON b.id = m.brand_id")
+    models = {}
+    for slug, source, name, model_slug in cur.fetchall():
+        models.setdefault(slug, {})[source] = (name, model_slug)
+    return brands, models
+
+
+def enrich_car(row, brands, models, unknown):
+    data = dict(zip(CAR_COLS, row))
+    raw_brand = (data["brand_ru"] or data["brand_cn"] or "").strip()
+    found = brands.get(normalize_brand(raw_brand))
+    if not found and data["brand_cn"]:
+        found = brands.get(normalize_brand(data["brand_cn"]))
+    if not found:
+        if raw_brand:
+            unknown[raw_brand] += 1
+        return tuple(row) + (None, None, None, None)
+    brand_id, slug = found
+    name, model_slug, trim = extract_title(
+        data["model"] or "", data["series_name"], data["brand_cn"], models.get(slug, {}), slug
+    )
+    return tuple(row) + (brand_id, name, model_slug, trim)
+
+
+def copy_table(sq, cur, sql, src_cols, table, title_catalog=None):
     from psycopg2.extras import execute_values
     rows = sq.execute(f"SELECT {', '.join(src_cols)} FROM {table}")
     total = 0
+    unknown = Counter()
     while True:
         batch = rows.fetchmany(BATCH)
         if not batch:
             break
+        if title_catalog is not None:
+            brands, models = title_catalog
+            batch = [enrich_car(row, brands, models, unknown) for row in batch]
         execute_values(cur, sql, batch, page_size=BATCH)
         total += len(batch)
+    if unknown:
+        execute_values(cur, """INSERT INTO unmapped_brand_names (raw_name, cars_count)
+            VALUES %s ON CONFLICT (raw_name) DO UPDATE SET
+            cars_count = unmapped_brand_names.cars_count + EXCLUDED.cars_count,
+            last_seen = now()""", list(unknown.items()))
     return total
 
 
@@ -140,8 +181,9 @@ def main():
     pg = psycopg2.connect(PG_DSN)
     try:
         with pg, pg.cursor() as cur:  # одна транзакция: сайт видит либо старые данные, либо новые
+            title_catalog = load_title_catalog(cur)
             s = copy_table(sq, cur, spec_upsert_sql(), SPEC_SRC, "specs")
-            c = copy_table(sq, cur, car_upsert_sql(), CAR_COLS, "cars")
+            c = copy_table(sq, cur, car_upsert_sql(), CAR_COLS, "cars", title_catalog)
             cur.execute("SELECT count(*), count(*) FILTER (WHERE is_active = 1 AND price_cny > 0) FROM cars")
             site_total, site_active = cur.fetchone()
     finally:

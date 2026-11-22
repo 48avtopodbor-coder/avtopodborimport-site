@@ -6,12 +6,12 @@ import { displayValue, firstDisplayValue } from "@/lib/format";
 import CarGallery from "@/components/car/CarGallery";
 import { modelEquipment } from "@/lib/equipment";
 import { sellerDictionaryRevision } from "@/lib/seller-description";
+import CarTitle from "@/components/car/CarTitle";
+import { formatCarFullName, type CarTitleData } from "@/lib/car-title";
+import type { Metadata } from "next";
 
-interface Car {
+interface Car extends CarTitleData {
   listing_id: string;
-  brand_ru: string;
-  model: string;
-  year: number;
   mileage_km: number;
   price_cny: number;
   fuel: string;
@@ -30,6 +30,24 @@ interface Car {
   local_photo_2: string | null;
   local_photo_3: string | null;
   scraped_at: string;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const result = await pool.query<CarTitleData>(
+    `SELECT c.brand_ru, c.model, c.year, c.brand_id, c.model_name, c.model_slug, c.trim,
+            b.name AS brand_name, b.slug AS brand_slug, b.logo_path
+     FROM cars c LEFT JOIN brands b ON b.id = c.brand_id
+     WHERE c.listing_id = $1 AND c.is_active = 1`,
+    [id],
+  );
+  if (!result.rows[0]) return {};
+  const title = formatCarFullName(result.rows[0]);
+  return { title, openGraph: { title } };
 }
 
 interface Spec {
@@ -79,12 +97,15 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
   const [carResult, specsResult] = await Promise.all([
     pool.query(
       `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
+              c.brand_id, c.model_name, c.model_slug, c.trim,
+              b.name AS brand_name, b.slug AS brand_slug, b.logo_path,
               c.fuel, c.gearbox, c.color, c.city, c.engine_ml, c.tires, c.description,
               tr.translated_text AS translated_description,
               COALESCE(ct.city_ru, c.city) as city_display,
               ct.distance_km,
               c.photos, c.images, c.local_photo, c.local_photo_2, c.local_photo_3, c.scraped_at
        FROM cars c
+       LEFT JOIN brands b ON b.id = c.brand_id
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
        LEFT JOIN seller_description_translations tr
          ON tr.source_hash = md5(c.description) AND tr.source_text = c.description
@@ -183,9 +204,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
 
           {/* Основная информация */}
           <div>
-            <h1 className="font-heading font-bold text-2xl text-white mb-1">
-              {car.brand_ru} {cleanModel(car.model)}
-            </h1>
+            <CarTitle car={car} />
             <p className="text-gray-400 font-body text-sm mb-6">
               {car.year} · {car.city_display}
               {car.distance_km && (
