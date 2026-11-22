@@ -1,0 +1,10 @@
+[Unit]
+Description=Backfill car photos every two hours
+
+[Timer]
+OnBootSec=20min
+OnUnitActiveSec=2h
+Unit=avto-photo-batch.service
+
+[Install]
+WantedBy=timers.target

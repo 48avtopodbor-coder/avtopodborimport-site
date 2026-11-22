@@ -28,6 +28,7 @@ interface Car {
   images: string | null;
   local_photo: string | null;
   local_photo_2: string | null;
+  local_photo_3: string | null;
   scraped_at: string;
 }
 
@@ -80,7 +81,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               tr.translated_text AS translated_description,
               COALESCE(ct.city_ru, c.city) as city_display,
               ct.distance_km,
-              c.photos, c.images, c.local_photo, c.local_photo_2, c.scraped_at
+              c.photos, c.images, c.local_photo, c.local_photo_2, c.local_photo_3, c.scraped_at
        FROM cars c
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
        LEFT JOIN seller_description_translations tr
@@ -127,8 +128,9 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
   if (car.local_photo) {
     photoSrcs.push(car.local_photo);
     if (car.local_photo_2) photoSrcs.push(car.local_photo_2);
+    if (car.local_photo_3) photoSrcs.push(car.local_photo_3);
   } else {
-    remotePhotos.slice(0, 2).forEach((url) => {
+    remotePhotos.slice(0, 3).forEach((url) => {
       photoSrcs.push(`/api/img?url=${encodeURIComponent(url)}`);
     });
   }
