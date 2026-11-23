@@ -1,135 +1,42 @@
-import pool from "@/lib/db";
 import Link from "next/link";
+import type { Metadata } from "next";
 import HeaderPhones from "@/components/layout/HeaderPhones";
 import HeaderHomeLink from "@/components/layout/HeaderHomeLink";
-import { usedBrandHref } from "@/lib/catalog";
-import { firstDisplayValue } from "@/lib/format";
-import MobileBrandSelect from "./MobileBrandSelect";
-
-interface Car {
-  listing_id: string;
-  brand_ru: string;
-  model: string;
-  year: number;
-  mileage_km: number;
-  price_cny: number;
-  fuel: string | null;
-  spec_fuel: string | null;
-  gearbox: string | null;
-  color: string | null;
-  city: string;
-  city_display: string;
-  photos: string | null;
-  images: string | null;
-  local_photo: string | null;
+import { parseFilters, catalogHref, type QueryInput } from "@/lib/catalog-filters";
+import {
+  getCatalogFacets,
+  getCatalogList,
+  normalizeCatalogFilters,
+  brandRegistry,
+} from "@/lib/catalog-data";
+import CatalogFilters from "./CatalogFilters";
+import CatalogCard from "./CatalogCard";
+type Props = { searchParams: Promise<QueryInput> };
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const filters = await normalizeCatalogFilters(parseFilters(await searchParams));
+  const brands = await brandRegistry();
+  const brand = brands.find((b) => b.slug === filters.brand);
+  const title = brand
+    ? `${brand.name} с пробегом из Китая — купить под ключ`
+    : "Авто с пробегом из Китая — AVTOPODBOR IMPORT";
+  const canonical =
+    "https://avtopodborimport.ru/catalog/used" +
+    (brand ? "?" + new URLSearchParams({ brand: brand.slug }) : "");
+  return {
+    title,
+    description: brand
+      ? `Каталог ${brand.name} с пробегом из Китая. Характеристики, фотографии и подбор автомобиля с доставкой.`
+      : "Каталог автомобилей с пробегом из Китая: марки, модели, характеристики и фотографии.",
+    alternates: { canonical },
+  };
 }
-
-function cleanModel(model: string): string {
-  return model
-    .replace(/[一-鿿㐀-䶿]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getFirstPhoto(car: Car): string | null {
-  try {
-    if (car.photos) {
-      const arr = JSON.parse(car.photos);
-      if (Array.isArray(arr) && arr.length > 0) return arr[0];
-    }
-    if (car.images) {
-      const arr = JSON.parse(car.images);
-      if (Array.isArray(arr) && arr.length > 0) return arr[0];
-    }
-  } catch {}
-  return null;
-}
-
-function formatPrice(cny: number): string {
-  if (!cny) return "—";
-  // Примерный курс: 1 CNY ≈ 13.5 RUB, доставка ~300к, таможня ~зависит от объёма
-  // Пока показываем только цену в Китае
-  return `¥${(cny / 10000).toFixed(1)} вн`;
-}
-
-export default async function UsedCatalogPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[]>>;
-}) {
-  const sp = Object.fromEntries(
-    Object.entries(await searchParams).map(([key, value]) => [
-      key,
-      Array.isArray(value) ? value[0] : value,
-    ]),
-  );
-  const page = parseInt(sp.page || "1");
-  const limit = 24;
-  const offset = (page - 1) * limit;
-
-  const conditions: string[] = ["c.is_active = 1", "c.price_cny > 0"];
-  const params: (string | number)[] = [];
-  let idx = 1;
-
-  if (sp.brand) {
-    conditions.push(`(b.slug = $${idx} OR c.brand_ru = $${idx})`);
-    idx++;
-    params.push(sp.brand);
-  }
-  if (sp.model) {
-    conditions.push(`c.model_slug = $${idx++}`);
-    params.push(sp.model);
-  }
-  if (sp.fuel) {
-    conditions.push(`lower(COALESCE(c.fuel, s.fuel)) = lower($${idx++})`);
-    params.push(sp.fuel);
-  }
-
-  const where = conditions.join(" AND ");
-
-  const [carsResult, countResult, brandsResult] = await Promise.all([
-    pool.query(
-      `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
-              c.fuel, s.fuel AS spec_fuel, COALESCE(c.gearbox, s.gearbox) AS gearbox,
-              c.color, c.city,
-              COALESCE(ct.city_ru, c.city) as city_display,
-              c.photos, c.images, c.local_photo
-       FROM cars c
-       LEFT JOIN brands b ON b.id = c.brand_id
-       LEFT JOIN specs s ON s.spec_id = c.spec_id
-       LEFT JOIN city_translations ct ON ct.city_cn = c.city
-       WHERE ${where}
-       ORDER BY c.scraped_at DESC
-       LIMIT $${idx} OFFSET $${idx + 1}`,
-      [...params, limit, offset],
-    ),
-    pool.query(
-      `SELECT COUNT(*) FROM cars c LEFT JOIN brands b ON b.id = c.brand_id
-       LEFT JOIN specs s ON s.spec_id = c.spec_id WHERE ${where}`,
-      params,
-    ),
-    pool.query<{ brand_ru: string; brand_slug: string | null; cnt: string }>(
-      `SELECT c.brand_ru, b.slug AS brand_slug, COUNT(*) as cnt FROM cars c
-       LEFT JOIN brands b ON b.id = c.brand_id
-       WHERE c.is_active=1 AND c.price_cny>0 AND trim(c.brand_ru) <> ''
-       GROUP BY c.brand_ru, b.slug ORDER BY cnt DESC, c.brand_ru`,
-    ),
-  ]);
-
-  const cars: Car[] = carsResult.rows;
-  const total = parseInt(countResult.rows[0].count);
-  const totalPages = Math.ceil(total / limit);
-  const brands = brandsResult.rows;
-  const brandNames = brands.map((b) => ({ name: b.brand_ru, value: b.brand_slug || b.brand_ru }));
-  if (sp.brand && !brandNames.some((b) => b.value === sp.brand || b.name === sp.brand)) {
-    brandNames.push({ name: sp.brand, value: sp.brand });
-  }
-  brandNames.sort((a, b) => a.name.localeCompare(b.name, "ru"));
-  const query = new URLSearchParams(sp).toString();
-
+export default async function UsedCatalogPage({ searchParams }: Props) {
+  const filters = await normalizeCatalogFilters(parseFilters(await searchParams));
+  const [list, facets] = await Promise.all([getCatalogList(filters), getCatalogFacets(filters)]);
+  const current = { ...filters, page: list.page };
+  const pages = Math.ceil(list.total / list.pageSize);
   return (
     <div className="min-h-screen bg-graphite-900">
-      {/* Шапка */}
       <header className="border-b border-white/5 px-4 sm:px-6 py-4 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
         <div className="flex min-w-0 items-center gap-2 sm:gap-5">
           <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -156,164 +63,121 @@ export default async function UsedCatalogPage({
         <HeaderPhones className="w-full justify-between sm:w-auto sm:flex-col sm:max-[930px]:ml-auto" />
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="font-heading font-bold text-2xl text-white mb-1">
-            Авто с пробегом из Китая
-          </h1>
-          <p className="text-gray-400 font-body text-sm">
-            {total.toLocaleString("ru")} автомобилей
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        <div className="mb-5">
+          <h1 className="font-heading text-2xl font-bold text-white">Авто с пробегом из Китая</h1>
+          <p className="mt-1 min-h-5 font-body text-sm tabular-nums text-gray-400">
+            {list.total.toLocaleString("ru")} автомобилей
           </p>
         </div>
-
-        <MobileBrandSelect value={usedBrandHref(sp.brand || "", query)}>
-          <option value={usedBrandHref("", query)}>Все марки</option>
-          {brandNames.map(({ name, value }) => (
-            <option key={value} value={usedBrandHref(value, query)}>
-              {name}
-            </option>
-          ))}
-        </MobileBrandSelect>
-
-        <div className="flex gap-8">
-          {/* Фильтры */}
-          <aside className="hidden lg:block w-56 shrink-0">
-            <div className="bg-graphite-800 rounded-xl p-4">
-              <h2 className="font-heading font-bold text-white text-sm uppercase tracking-wider mb-3">
-                Марка
-              </h2>
-              <div className="space-y-1">
-                <Link
-                  href={usedBrandHref("", query)}
-                  className={`block text-sm font-body py-1 px-2 rounded transition-colors ${
-                    !sp.brand ? "text-orange-400" : "text-gray-400 hover:text-white"
-                  }`}
-                >
-                  Все марки
-                </Link>
-                {brands.slice(0, 20).map((b) => (
-                  <Link
-                    key={b.brand_ru}
-                    href={usedBrandHref(b.brand_slug || b.brand_ru, query)}
-                    className={`flex justify-between text-sm font-body py-1 px-2 rounded transition-colors ${
-                      sp.brand === b.brand_ru || sp.brand === b.brand_slug
-                        ? "text-orange-400"
-                        : "text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <span>{b.brand_ru}</span>
-                    <span className="text-gray-600">{b.cnt}</span>
-                  </Link>
+        <CatalogFilters filters={current} initialFacets={facets} />
+        <noscript>
+          <form
+            action="/catalog/used"
+            className="mb-6 flex flex-wrap gap-3 rounded-xl bg-graphite-800 p-4 text-sm text-white"
+          >
+            <label>
+              Марка
+              <select
+                name="brand"
+                defaultValue={filters.brand}
+                className="ml-2 min-h-11 bg-graphite-900"
+              >
+                <option value="">Все марки</option>
+                {facets.brands.map((b) => (
+                  <option key={b.slug} value={b.slug}>
+                    {b.name}
+                  </option>
                 ))}
-              </div>
-            </div>
-          </aside>
-
-          {/* Карточки */}
-          <div className="flex-1">
-            {total === 0 && (
-              <div className="rounded-xl bg-graphite-800 p-6 font-body text-gray-400">
-                <p>Пока нет автомобилей этой марки или модели.</p>
-                <Link
-                  href="/catalog/used"
-                  className="mt-3 inline-block text-orange-400 underline underline-offset-4"
+              </select>
+            </label>
+            {filters.brand && (
+              <label>
+                Модели
+                <select
+                  multiple
+                  name="model"
+                  defaultValue={filters.models}
+                  className="ml-2 bg-graphite-900"
                 >
-                  Смотреть весь каталог
-                </Link>
-              </div>
+                  {facets.models.map((m) => (
+                    <option key={m.slug} value={m.slug}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {cars.map((car) => {
-                const remotePhoto = getFirstPhoto(car);
-                const photoSrc = car.local_photo
-                  ? car.local_photo
-                  : remotePhoto
-                    ? `/api/img?url=${encodeURIComponent(remotePhoto)}`
-                    : null;
-                return (
-                  <Link
-                    key={car.listing_id}
-                    href={`/car/${car.listing_id}`}
-                    className="bg-graphite-800 rounded-xl overflow-hidden hover:ring-1 hover:ring-orange-500/50 transition-all group"
-                  >
-                    {/* Фото */}
-                    <div className="relative h-44 bg-graphite-700">
-                      {photoSrc ? (
-                        <img
-                          src={photoSrc}
-                          alt={`${car.brand_ru} ${car.model}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600">
-                          <svg
-                            className="w-12 h-12"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Инфо */}
-                    <div className="p-3">
-                      <div className="font-heading font-bold text-white text-sm mb-1">
-                        {car.brand_ru} {cleanModel(car.model)}
-                      </div>
-                      <div className="flex gap-3 text-xs text-gray-400 font-body mb-2">
-                        <span>{car.year}</span>
-                        <span>
-                          {car.mileage_km ? `${(car.mileage_km / 1000).toFixed(0)} тыс. км` : "—"}
-                        </span>
-                        {firstDisplayValue(car.fuel, car.spec_fuel) && (
-                          <span>{firstDisplayValue(car.fuel, car.spec_fuel)}</span>
-                        )}
-                      </div>
-                      <div className="text-orange-400 font-heading font-bold text-sm">
-                        {formatPrice(car.price_cny)}
-                      </div>
-                      <div className="text-xs text-gray-500 font-body">{car.city_display}</div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-
-            {/* Пагинация */}
-            {totalPages > 1 && (
-              <div className="flex gap-2 mt-8 justify-center">
-                {page > 1 && (
-                  <Link
-                    href={`/catalog/used?${new URLSearchParams({ ...sp, page: String(page - 1) })}`}
-                    className="px-4 py-2 bg-graphite-800 text-gray-400 rounded-lg font-body text-sm hover:text-white transition-colors"
-                  >
-                    ← Назад
-                  </Link>
-                )}
-                <span className="px-4 py-2 text-gray-500 font-body text-sm">
-                  {page} / {totalPages}
-                </span>
-                {page < totalPages && (
-                  <Link
-                    href={`/catalog/used?${new URLSearchParams({ ...sp, page: String(page + 1) })}`}
-                    className="px-4 py-2 bg-graphite-800 text-gray-400 rounded-lg font-body text-sm hover:text-white transition-colors"
-                  >
-                    Вперёд →
-                  </Link>
-                )}
-              </div>
-            )}
+            <label>
+              Год от
+              <input
+                name="yearFrom"
+                type="number"
+                defaultValue={filters.yearFrom}
+                className="ml-2 min-h-11 w-24 bg-graphite-900"
+              />
+            </label>
+            <label>
+              Пробег до
+              <input
+                name="mileageTo"
+                type="number"
+                defaultValue={filters.mileageTo}
+                className="ml-2 min-h-11 w-28 bg-graphite-900"
+              />
+            </label>
+            <button className="min-h-11 rounded-lg bg-orange-500 px-4 text-black">
+              Применить фильтры
+            </button>
+          </form>
+        </noscript>
+        {list.total === 0 ? (
+          <section className="rounded-xl bg-graphite-800 p-8 text-center">
+            <h2 className="font-heading text-xl font-bold text-white">Ничего не нашли</h2>
+            <p className="mt-3 text-gray-400">Попробуйте ослабить условия поиска.</p>
+            <Link
+              href="/catalog/used"
+              className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-orange-500 px-5 font-semibold text-black"
+            >
+              Сбросить фильтры
+            </Link>
+          </section>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {list.items.map((car) => (
+              <CatalogCard key={car.listing_id} car={car} />
+            ))}
           </div>
-        </div>
-      </div>
+        )}
+        {pages > 1 && (
+          <nav
+            aria-label="Страницы каталога"
+            className="mt-8 flex min-h-11 items-center justify-center gap-3 font-body text-sm text-gray-200"
+          >
+            {list.page > 1 && (
+              <Link
+                rel="prev"
+                href={catalogHref({ ...current, page: list.page - 1 })}
+                className="inline-flex min-h-11 items-center rounded-lg bg-graphite-800 px-4"
+              >
+                ← Назад
+              </Link>
+            )}
+            <span className="tabular-nums">
+              {list.page} / {pages}
+            </span>
+            {list.page < pages && (
+              <Link
+                rel="next"
+                href={catalogHref({ ...current, page: list.page + 1 })}
+                className="inline-flex min-h-11 items-center rounded-lg bg-graphite-800 px-4"
+              >
+                Вперёд →
+              </Link>
+            )}
+          </nav>
+        )}
+      </main>
     </div>
   );
 }
