@@ -2,6 +2,7 @@
 """Server side of the temporary workstation bridge. Invoked only over existing SSH."""
 
 import argparse
+import fcntl
 import hashlib
 import json
 import os
@@ -167,9 +168,11 @@ def failed(keys):
 
 def acknowledge_collector(data):
     request = STATE / "collect-request"
-    if request.exists() and request.read_text().strip() == data.get("request"):
-        request.unlink()
-        return {"acknowledged": True}
+    with (STATE / "collect.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if request.exists() and request.read_text().strip() == data.get("request"):
+            request.unlink()
+            return {"acknowledged": True}
     return {"acknowledged": False}
 
 
