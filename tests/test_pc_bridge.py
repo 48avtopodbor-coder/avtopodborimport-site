@@ -47,7 +47,7 @@ class BridgeTests(unittest.TestCase):
                 )
                 self.assertFalse(request.exists())
 
-    def test_receiver_preserves_bytes_and_rejects_unrequested_paths(self):
+    def test_receiver_preserves_fourth_photo_bytes_and_rejects_unrequested_paths(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             cache, photos, pending = [
@@ -58,7 +58,7 @@ class BridgeTests(unittest.TestCase):
             key = "a" * 64
             manifest = base / "work.json"
             manifest.write_text(
-                json.dumps({key: {"id": key, "listing_id": "123", "index": 3}})
+                json.dumps({key: {"id": key, "listing_id": "123", "index": 4}})
             )
             data = b"RIFF\x0c\x00\x00\x00WEBPoriginal-bytes"
             stream = io.BytesIO()
@@ -84,10 +84,10 @@ class BridgeTests(unittest.TestCase):
                 result = bridge.receive()
                 self.assertEqual(result, {"stored": 1, "catalog_paths": 1})
                 self.assertEqual((cache / key).read_bytes(), data)
-                self.assertEqual((photos / "123_3.webp").read_bytes(), data)
+                self.assertEqual((photos / "123_4.webp").read_bytes(), data)
                 self.assertFalse((base / "escape").exists())
                 self.assertEqual(
-                    database.call_args.args[1], [("123", 3, "/photos/123_3.webp")]
+                    database.call_args.args[1], [("123", 4, "/photos/123_4.webp")]
                 )
 
     def test_receiver_does_not_publish_html_as_photo(self):

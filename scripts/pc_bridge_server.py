@@ -128,7 +128,7 @@ def receive():
             if (
                 lid
                 and re.fullmatch(r"[0-9A-Za-z_-]{1,40}", str(lid))
-                and index in (1, 2, 3)
+                and index in (1, 2, 3, 4)
             ):
                 extension = {
                     "image/webp": ".webp",
@@ -152,7 +152,7 @@ rows=json.load(sys.stdin)
 with psycopg2.connect("dbname=avtopodborimport user=postgres") as c:
  with c.cursor() as cur:
   for lid,index,path in rows:
-   column=("local_photo","local_photo_2","local_photo_3")[index-1]
+   column=("local_photo","local_photo_2","local_photo_3","local_photo_4")[index-1]
    cur.execute("UPDATE cars SET "+column+"=COALESCE("+column+",%s) WHERE listing_id=%s",(path,lid))
 """,
             updates,
