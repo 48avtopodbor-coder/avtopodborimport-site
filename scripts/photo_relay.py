@@ -21,6 +21,8 @@ BRIDGE_STATE = Path("/srv/che168/pc-bridge")
 
 
 def workstation_alive():
+    if (BRIDGE_STATE / "disabled").exists():
+        return False
     try:
         return time.time() - (BRIDGE_STATE / "alive").stat().st_mtime < 120
     except OSError:
@@ -28,6 +30,8 @@ def workstation_alive():
 
 
 def enqueue_workstation(url, key):
+    if (BRIDGE_STATE / "disabled").exists():
+        return
     pending = BRIDGE_STATE / "pending"
     pending.mkdir(parents=True, exist_ok=True)
     temporary = pending / (key + "." + str(threading.get_ident()) + ".tmp")

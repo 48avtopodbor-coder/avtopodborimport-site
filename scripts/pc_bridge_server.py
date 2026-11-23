@@ -43,6 +43,8 @@ def atomic_json(path, data):
 
 
 def work(limit):
+    if (STATE / "disabled").exists():
+        return {"jobs": [], "reason": "direct server mode"}
     STATE.mkdir(parents=True, exist_ok=True)
     PENDING.mkdir(exist_ok=True)
     (STATE / "alive").touch()
