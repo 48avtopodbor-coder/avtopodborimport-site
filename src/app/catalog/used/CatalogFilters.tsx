@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import CatalogBrandLogo from "./CatalogBrandLogo";
 import { useRouter } from "next/navigation";
 import {
   BODY_NAMES,
@@ -12,7 +12,7 @@ import {
   filterParams,
   type CatalogFilters as Filters,
 } from "@/lib/catalog-filters";
-import type { Facet, Facets } from "@/lib/catalog-data";
+import type { Facets } from "@/lib/catalog-data";
 
 type Panel = "brand" | "body" | "year" | "price" | "mileage" | "mobile";
 const labels = {
@@ -25,25 +25,6 @@ const labels = {
 };
 const focusable =
   'button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href], [tabindex="0"]';
-function Logo({ brand }: { brand: Facet }) {
-  const [broken, setBroken] = useState(false);
-  return (
-    <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100 p-1 text-xs font-bold text-graphite-900">
-      {brand.logo && !broken ? (
-        <Image
-          src={brand.logo}
-          width={24}
-          height={24}
-          alt={`Логотип ${brand.name}`}
-          className="size-full object-contain"
-          onError={() => setBroken(true)}
-        />
-      ) : (
-        <span aria-label={`Марка ${brand.name}`}>{brand.name.slice(0, 1)}</span>
-      )}
-    </span>
-  );
-}
 function Chevron({ expanded }: { expanded: boolean }) {
   return (
     <span
@@ -289,7 +270,7 @@ function FilterControls({ filters, initialFacets }: { filters: Filters; initialF
                 }}
                 className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm ${draft.brand === b.slug ? "bg-orange-500/10 text-orange-400" : "text-gray-200 hover:bg-white/5"}`}
               >
-                <Logo brand={b} />
+                <CatalogBrandLogo brand={b} />
                 <span className="min-w-0 flex-1 break-words">{b.name}</span>
                 <span className="tabular-nums text-gray-400">{b.count.toLocaleString("ru")}</span>
                 <span aria-hidden="true">›</span>
