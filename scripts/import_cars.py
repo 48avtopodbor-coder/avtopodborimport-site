@@ -126,9 +126,10 @@ def enrich_car(row, brands, models, unknown):
     return tuple(row) + (brand_id, name, model_slug, trim)
 
 
-def copy_table(sq, cur, sql, src_cols, table, title_catalog=None):
+def copy_table(sq, cur, sql, src_cols, table, title_catalog=None, active_only=False):
     from psycopg2.extras import execute_values
-    rows = sq.execute(f"SELECT {', '.join(src_cols)} FROM {table}")
+    condition = " WHERE is_active=1" if active_only else ""
+    rows = sq.execute(f"SELECT {', '.join(src_cols)} FROM {table}{condition}")
     total = 0
     unknown = Counter()
     while True:
@@ -169,6 +170,8 @@ def main():
     if dry:
         print("проверка источника: ok, в базу сайта ничего не записано")
         return
+    if not n_cars or not n_active:
+        sys.exit("пустая копия или нет активных машин — импорт и удаление отменены")
 
     try:
         with open(STATE_PATH) as state:
@@ -185,7 +188,9 @@ def main():
         with pg, pg.cursor() as cur:  # одна транзакция: сайт видит либо старые данные, либо новые
             title_catalog = load_title_catalog(cur)
             s = copy_table(sq, cur, spec_upsert_sql(), SPEC_SRC, "specs")
-            c = copy_table(sq, cur, car_upsert_sql(), CAR_COLS, "cars", title_catalog)
+            c = copy_table(sq, cur, car_upsert_sql(), CAR_COLS, "cars", title_catalog, active_only=True)
+            from sold_cars import remove_confirmed
+            removed = remove_confirmed(sq, cur)
             cur.execute("SELECT count(*), count(*) FILTER (WHERE is_active = 1 AND price_cny > 0) FROM cars")
             site_total, site_active = cur.fetchone()
     finally:
@@ -196,7 +201,7 @@ def main():
     with open(STATE_PATH, "w") as f:
         f.write(identity + "\n")
     print(f"готово за {time.time() - t0:.0f} с: комплектаций {s}, машин {c}; "
-          f"на сайте машин {site_total}, в продаже с ценой {site_active}")
+          f"на сайте машин {site_total}, в продаже с ценой {site_active}; удалено снятых {removed}")
 
 
 if __name__ == "__main__":

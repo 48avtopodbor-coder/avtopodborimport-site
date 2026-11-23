@@ -50,6 +50,14 @@ ls -lh cars.db | awk '{print "готово:", $5, $9}'
 sudo -u postgres env SQLITE_PATH="$snapshot" \
   python3 /opt/avtopodborimport/import_cars.py --published
 
+# Confirmed inactive listings were removed transactionally by the importer.
+# File cleanup retries through its timer if a photo batch currently owns the lock.
+python3 /opt/avtopodborimport/cleanup_sold_photos.py --apply
+if ! ssh -o BatchMode=yes -o ConnectTimeout=15 hosting \
+  'cd /home/c/cc14862/che168 && python3 cleanup_collector_photos.py --apply'; then
+  echo "очистка старых фото сборщика не прошла; повтор при следующей копии"
+fi
+
 if [ -f /opt/avtopodborimport/translate_seller_descriptions.py ] && \
    [ -f /opt/avtopodborimport/seller-dictionary.json ]; then
   nohup nice -n 15 sudo -u postgres python3 \

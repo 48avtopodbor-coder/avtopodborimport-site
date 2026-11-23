@@ -1,0 +1,9 @@
+[Unit]
+Description=Remove photos of confirmed inactive car listings
+After=postgresql.service
+
+[Service]
+Type=oneshot
+Nice=10
+TimeoutStartSec=10min
+ExecStart=/usr/bin/python3 /opt/avtopodborimport/cleanup_sold_photos.py --apply
