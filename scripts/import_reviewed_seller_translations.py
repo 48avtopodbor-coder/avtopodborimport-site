@@ -67,7 +67,8 @@ def main():
                 SET status = 'reviewed', translated_text = EXCLUDED.translated_text,
                     dictionary_revision = NULL, updated_at = now()
                 WHERE seller_description_translations.source_text = EXCLUDED.source_text
-                  AND seller_description_translations.status <> 'dictionary'
+                  AND (seller_description_translations.status <> 'dictionary'
+                       OR seller_description_translations.translated_text ~ '[一-龥]')
                   AND (seller_description_translations.status <> 'reviewed'
                        OR seller_description_translations.translated_text IS DISTINCT FROM EXCLUDED.translated_text)
             """, rows, page_size=200)

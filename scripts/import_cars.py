@@ -191,6 +191,8 @@ def main():
     finally:
         pg.close()
         sq.close()
+    from refresh_catalog_queue import main as refresh_catalog_queue
+    refresh_catalog_queue()
     with open(STATE_PATH, "w") as f:
         f.write(identity + "\n")
     print(f"готово за {time.time() - t0:.0f} с: комплектаций {s}, машин {c}; "

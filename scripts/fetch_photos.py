@@ -82,7 +82,7 @@ CROSS JOIN LATERAL (VALUES (1, first_url, local_photo), (2, second_url, local_ph
                            (3, third_url, local_photo_3))
   AS photo(photo_index, url, local_path)
 WHERE url IS NOT NULL AND local_path IS NULL
-ORDER BY scraped_at DESC, photo_index ASC
+ORDER BY photo_index ASC, scraped_at DESC
 LIMIT %d;
 """
 ON_SALE_SQL = """
