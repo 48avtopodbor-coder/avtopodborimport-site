@@ -1,0 +1,11 @@
+[Unit]
+Description=Temporary car data bridge through this workstation
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/avto-pc-bridge/pc_bridge_client.py --config %h/.config/avto-pc-bridge/ssh_config --state-dir %h/.cache/avto-pc-bridge --limit 12
+Restart=on-failure
+RestartSec=30
+[Install]
+WantedBy=default.target

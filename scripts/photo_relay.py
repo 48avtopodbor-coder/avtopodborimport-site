@@ -2,6 +2,7 @@
 """Serve original Che168 photos through the existing collector host, caching by URL."""
 
 import hashlib
+import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import shlex
@@ -16,6 +17,22 @@ SLOTS = threading.BoundedSemaphore(2)
 MASTER_LOCK = threading.Lock()
 SSH_SOCKET = "/run/avto-photo-relay-ssh"
 CONNECT_AFTER = 0.0
+BRIDGE_STATE = Path("/srv/che168/pc-bridge")
+
+
+def workstation_alive():
+    try:
+        return time.time() - (BRIDGE_STATE / "alive").stat().st_mtime < 120
+    except OSError:
+        return False
+
+
+def enqueue_workstation(url, key):
+    pending = BRIDGE_STATE / "pending"
+    pending.mkdir(parents=True, exist_ok=True)
+    temporary = pending / (key + "." + str(threading.get_ident()) + ".tmp")
+    temporary.write_text(json.dumps({"url": url}))
+    temporary.replace(pending / (key + ".json"))
 
 
 def ensure_master():
@@ -113,6 +130,19 @@ class Handler(BaseHTTPRequestHandler):
             if shutil.disk_usage(CACHE).free < 4 * 1024**3:
                 self.send_error(507)
                 return
+            key = target.name
+            enqueue_workstation(url, key)
+            if workstation_alive():
+                deadline = time.monotonic() + 45
+                while not target.exists() and time.monotonic() < deadline:
+                    time.sleep(0.2)
+                if not target.exists():
+                    self.send_response(503)
+                    self.send_header("Retry-After", "30")
+                    self.end_headers()
+                    return
+            if target.exists():
+                return self.serve_photo(target)
             if not SLOTS.acquire(timeout=20):
                 self.send_error(503)
                 return
@@ -159,6 +189,9 @@ class Handler(BaseHTTPRequestHandler):
                 return
             finally:
                 SLOTS.release()
+        self.serve_photo(target)
+
+    def serve_photo(self, target):
         try:
             body = target.read_bytes()
             ctype = image_type(body)
