@@ -10,9 +10,24 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import pc_bridge_server as bridge
+import photo_relay
 
 
 class BridgeTests(unittest.TestCase):
+    def test_direct_mode_ignores_heartbeat_and_does_not_issue_pc_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            (state / "alive").touch()
+            with patch.object(photo_relay, "BRIDGE_STATE", state):
+                self.assertTrue(photo_relay.workstation_alive())
+                (state / "disabled").touch()
+                self.assertFalse(photo_relay.workstation_alive())
+                photo_relay.enqueue_workstation("https://example.autoimg.cn/photo.webp", "a" * 64)
+                self.assertFalse((state / "pending").exists())
+            with patch.object(bridge, "STATE", state), patch.object(bridge, "database") as query:
+                self.assertEqual(bridge.work(12), {"jobs": [], "reason": "direct server mode"})
+                query.assert_not_called()
+
     def test_collector_acknowledgment_preserves_a_newer_request(self):
         with tempfile.TemporaryDirectory() as directory:
             state = Path(directory)
