@@ -4,7 +4,7 @@ import re
 import unicodedata
 
 
-YEAR_MARKER = re.compile(r"\s+20\d{2}款(?:\s+|$)")
+YEAR_MARKER = re.compile(r"\s*(?:19|20)\d{2}款(?:\s+|$)")
 LATIN_MODEL = re.compile(r"^[A-Za-z][A-Za-z0-9 .+/-]*$")
 LATIN_TRIM = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 .+/-]*$")
 TRIM_TOKENS = re.compile(r"[A-Za-z0-9]+(?:[.][0-9]+)?")
@@ -24,7 +24,12 @@ def source_series(full_name: str, series_name: str | None) -> str | None:
     if series_name and series_name.strip():
         return series_name.strip()
     match = YEAR_MARKER.search(full_name or "")
-    return full_name[:match.start()].strip() if match else None
+    if match:
+        return full_name[:match.start()].strip()
+    # Some sellers use model/engine/year/trim instead of the standard title.
+    if re.search(r"/[^/]+/\d{2}款(?:/|$)", full_name or ""):
+        return full_name.split("/", 1)[0].strip()
+    return None
 
 
 def extract_title(
@@ -39,12 +44,12 @@ def extract_title(
     aliases is keyed by the exact Chinese series for the given brand.
     Unknown Chinese series and trims stay NULL. The original full name is untouched.
     """
-    source = source_series(full_name, series_name)
+    source = source_series(full_name, series_name) or (full_name if full_name in aliases else None)
     if not source:
         return None, None, None
     # Che168 may append an import marker to the same model series.
     core_source = re.sub(r"(?:\(进口\)|进口)$", "", source).strip()
-    known = aliases.get(source) or aliases.get(core_source)
+    known = aliases.get(full_name) or aliases.get(source) or aliases.get(core_source)
     if known:
         name, slug = known
     else:

@@ -25,12 +25,13 @@ def translate(original, dictionary):
     normalized = re.sub(r"\s+", "", re.sub(r"[。．.]+$", "", re.sub(r"[，,]", "，", text)))
     result = dictionary["descriptions"].get(normalized)
     if result:
-        return "dictionary", result
+        return ("untranslated", None) if CJK.search(result) else ("dictionary", result)
     if CJK.search(text):
         parts = [part for part in re.split(r"[，。；;、]+", normalized) if part]
         phrases = dictionary["phrases"]
         if parts and all(part in phrases for part in parts):
-            return "dictionary", " ".join(f"{phrases[part]}." for part in parts)
+            result = " ".join(f"{phrases[part]}." for part in parts)
+            return ("untranslated", None) if CJK.search(result) else ("dictionary", result)
         return "untranslated", None
     return "original", None
 

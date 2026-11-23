@@ -20,6 +20,7 @@ interface Car extends CarTitleData {
   city: string;
   city_display: string;
   distance_km: number | null;
+  distance_source: string | null;
   description: string | null;
   translated_description: string | null;
   engine_ml: number | null;
@@ -102,7 +103,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               c.fuel, c.gearbox, c.color, c.city, c.engine_ml, c.tires, c.description,
               tr.translated_text AS translated_description,
               COALESCE(ct.city_ru, c.city) as city_display,
-              ct.distance_km,
+              ct.distance_km, ct.distance_source,
               c.photos, c.images, c.local_photo, c.local_photo_2, c.local_photo_3, c.scraped_at
        FROM cars c
        LEFT JOIN brands b ON b.id = c.brand_id
@@ -209,7 +210,23 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               {car.year} · {car.city_display}
               {car.distance_km && (
                 <span className="ml-2 text-gray-600">
-                  · {car.distance_km.toLocaleString("ru")} км до Хоргоса
+                  · {car.distance_source ? "≈ " : ""}
+                  {car.distance_km.toLocaleString("ru")} км до Хоргоса
+                  {car.distance_source && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <a
+                        href="https://www.openstreetmap.org/copyright"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline underline-offset-2 hover:text-gray-400"
+                        title="Примерный дорожный маршрут от центра города до Хоргоса: OSRM, данные © OpenStreetMap contributors"
+                      >
+                        © OpenStreetMap
+                      </a>
+                    </>
+                  )}
                 </span>
               )}
             </p>

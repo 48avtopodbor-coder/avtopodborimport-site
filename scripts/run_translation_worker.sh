@@ -22,5 +22,7 @@ PY
 chmod 644 "$temporary"
 mv -f "$temporary" /opt/avtopodborimport/seller-dictionary.json
 
-exec nice -n 15 sudo -u postgres python3 \
+nice -n 15 sudo -u postgres python3 \
   /opt/avtopodborimport/translate_seller_descriptions.py --limit 2000
+
+nice -n 15 sudo -u postgres python3 /opt/avtopodborimport/refresh_catalog_queue.py

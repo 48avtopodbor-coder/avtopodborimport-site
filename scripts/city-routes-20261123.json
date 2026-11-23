@@ -1,0 +1,799 @@
+{
+  "烟台": {
+    "city_ru": "Яньтай",
+    "coordinates": [
+      121.4425255,
+      37.461928
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3469843,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Yantai",
+      "state": "Shandong Province",
+      "country": "China",
+      "postcode": "264000",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        119.5339962,
+        38.5583685,
+        121.9290305,
+        36.0664488
+      ]
+    },
+    "distance_km": 4129,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/121.4425255,37.461928;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "泉州": {
+    "city_ru": "Цюаньчжоу",
+    "coordinates": [
+      118.6723605,
+      24.8755492
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 244081721,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "district",
+      "name": "Quanzhou",
+      "city": "Fengze",
+      "county": "Quanzhou",
+      "state": "Fujian Province",
+      "country": "China",
+      "postcode": "362000",
+      "countrycode": "CN"
+    },
+    "distance_km": 4811,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/118.6723605,24.8755492;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "珠海": {
+    "city_ru": "Чжухай",
+    "coordinates": [
+      113.5721327,
+      22.273734
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3464829,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Zhuhai",
+      "state": "Guangdong Province",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        113.0749541,
+        22.4877046,
+        114.5024444,
+        21.4197436
+      ]
+    },
+    "distance_km": 4866,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/113.5721327,22.273734;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "达州": {
+    "city_ru": "Дачжоу",
+    "coordinates": [
+      107.4629791,
+      31.2101038
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 11104569789,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "district",
+      "name": "Dazhou",
+      "city": "朝阳街道",
+      "county": "Tongchuan",
+      "state": "Sichuan Province",
+      "country": "China",
+      "countrycode": "CN"
+    },
+    "distance_km": 3409,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/107.4629791,31.2101038;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "聊城": {
+    "city_ru": "Ляочэн",
+    "coordinates": [
+      115.9642007,
+      36.4441808
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3485816,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Liaocheng",
+      "state": "Shandong Province",
+      "country": "China",
+      "postcode": "252000",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        115.2656364,
+        37.0314272,
+        116.544059,
+        35.7728789
+      ]
+    },
+    "distance_km": 3676,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/115.9642007,36.4441808;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "株洲": {
+    "city_ru": "Чжучжоу",
+    "coordinates": [
+      113.1283685,
+      27.830618
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 244082512,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Zhuzhou",
+      "county": "Tianyuan",
+      "state": "Hunan Province",
+      "country": "China",
+      "postcode": "412000",
+      "countrycode": "CN"
+    },
+    "distance_km": 4166,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/113.1283685,27.830618;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "衢州": {
+    "city_ru": "Цюйчжоу",
+    "coordinates": [
+      118.8540924,
+      28.973887
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3278467,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Quzhou",
+      "state": "Zhejiang",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        118.022407,
+        29.5003523,
+        119.3419587,
+        28.2414132
+      ]
+    },
+    "distance_km": 4436,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/118.8540924,28.973887;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "郴州": {
+    "city_ru": "Чэньчжоу",
+    "coordinates": [
+      113.0094337,
+      25.7733598
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3123920,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Chenzhou",
+      "state": "Hunan Province",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        112.2241339,
+        26.840766,
+        114.2319012,
+        24.8936774
+      ]
+    },
+    "distance_km": 4413,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/113.0094337,25.7733598;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "长治": {
+    "city_ru": "Чанчжи",
+    "coordinates": [
+      113.0992929,
+      36.1830167
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 2963917,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Changzhi",
+      "state": "Shanxi Province",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        111.9750573,
+        37.1248323,
+        113.7351194,
+        35.8227615
+      ]
+    },
+    "distance_km": 3428,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/113.0992929,36.1830167;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "阜新": {
+    "city_ru": "Фусинь",
+    "coordinates": [
+      121.6452868,
+      42.0151733
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 244079849,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Fuxin",
+      "county": "Xihe",
+      "state": "Liaoning Province",
+      "country": "China",
+      "postcode": "123000",
+      "countrycode": "CN"
+    },
+    "distance_km": 3949,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/121.6452868,42.0151733;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "萍乡": {
+    "city_ru": "Пинсян",
+    "coordinates": [
+      113.8830806,
+      27.6603206
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 2787706363,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "district",
+      "name": "Pingxiang",
+      "city": "萍乡经开区",
+      "county": "Pingxiang",
+      "state": "Jiangxi Province",
+      "country": "China",
+      "postcode": "337000",
+      "countrycode": "CN"
+    },
+    "distance_km": 4240,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/113.8830806,27.6603206;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "玉林": {
+    "city_ru": "Юйлинь",
+    "coordinates": [
+      110.1534945,
+      22.6347907
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 244082760,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "district",
+      "name": "Yulin",
+      "city": "Yuzhou",
+      "county": "Yulin",
+      "state": "Guangxi Zhuang Autonomous Region",
+      "country": "China",
+      "postcode": "537000",
+      "countrycode": "CN"
+    },
+    "distance_km": 4562,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/110.1534945,22.6347907;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "玉溪": {
+    "city_ru": "Юйси",
+    "coordinates": [
+      102.527044,
+      24.3511487
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 2723502,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Yuxi",
+      "state": "Yunnan Province",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        101.2753184,
+        24.9548578,
+        103.1516888,
+        23.3171842
+      ]
+    },
+    "distance_km": 4026,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/102.527044,24.3511487;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "遂宁": {
+    "city_ru": "Суйнин",
+    "coordinates": [
+      105.5892566,
+      30.5359233
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 2788710,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Suining",
+      "state": "Sichuan Province",
+      "country": "China",
+      "postcode": "629018",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        105.0561813,
+        31.1630557,
+        105.9975821,
+        30.1762169
+      ]
+    },
+    "distance_km": 3370,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/105.5892566,30.5359233;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "贺州": {
+    "city_ru": "Хэчжоу",
+    "coordinates": [
+      111.5618542,
+      24.4073814
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 703046938,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Hezhou",
+      "county": "Babu",
+      "state": "Guangxi Zhuang Autonomous Region",
+      "country": "China",
+      "countrycode": "CN"
+    },
+    "distance_km": 4511,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/111.5618542,24.4073814;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "景德镇": {
+    "city_ru": "Цзиндэчжэнь",
+    "coordinates": [
+      117.1727822,
+      29.2712774
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 244080868,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "district",
+      "name": "Jingdezhen",
+      "city": "Lumeng",
+      "county": "Changjiang",
+      "state": "Jiangxi Province",
+      "country": "China",
+      "countrycode": "CN"
+    },
+    "distance_km": 4246,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/117.1727822,29.2712774;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "池州": {
+    "city_ru": "Чичжоу",
+    "coordinates": [
+      117.4859885,
+      30.6671088
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3164669,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Chizhou",
+      "state": "Anhui Province",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        116.6440654,
+        30.84597,
+        118.1295394,
+        29.5650702
+      ]
+    },
+    "distance_km": 4190,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/117.4859885,30.6671088;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "贵港": {
+    "city_ru": "Гуйган",
+    "coordinates": [
+      109.5946193,
+      23.1144539
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 1949301592,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Guigang",
+      "county": "Gangbei",
+      "state": "Guangxi Zhuang Autonomous Region",
+      "country": "China",
+      "postcode": "537100",
+      "countrycode": "CN"
+    },
+    "distance_km": 4483,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/109.5946193,23.1144539;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "辽源": {
+    "city_ru": "Ляоюань",
+    "coordinates": [
+      125.1405117,
+      42.9006842
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 2764045,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Liaoyuan",
+      "county": "Longshan",
+      "state": "Jilin Province",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        124.8344202,
+        43.2308705,
+        125.8387318,
+        42.298203
+      ]
+    },
+    "distance_km": 4284,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/125.1405117,42.9006842;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "潜江": {
+    "city_ru": "Цяньцзян",
+    "coordinates": [
+      112.8940372,
+      30.4049826
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3258831,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Qianjiang",
+      "state": "Hubei",
+      "country": "China",
+      "postcode": "433100",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "6"
+      },
+      "extent": [
+        112.494974,
+        30.6477796,
+        113.027101,
+        30.076622
+      ]
+    },
+    "distance_km": 3840,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/112.8940372,30.4049826;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "鸡西": {
+    "city_ru": "Цзиси",
+    "coordinates": [
+      130.9619259,
+      45.2928513
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 502220401,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "district",
+      "name": "Jixi",
+      "city": "Jiguan",
+      "county": "Jixi",
+      "state": "Heilongjiang Province",
+      "country": "China",
+      "postcode": "158100",
+      "countrycode": "CN"
+    },
+    "distance_km": 4804,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/130.9619259,45.2928513;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "济源": {
+    "city_ru": "Цзиюань",
+    "coordinates": [
+      112.5810521,
+      35.0945453
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3010773,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Jiyuan",
+      "state": "Henan Province",
+      "country": "China",
+      "postcode": "459000",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "6"
+      },
+      "extent": [
+        112.0296551,
+        35.2808984,
+        112.7665652,
+        34.8951185
+      ]
+    },
+    "distance_km": 3468,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/112.5810521,35.0945453;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "百色": {
+    "city_ru": "Байсэ",
+    "coordinates": [
+      106.6148824,
+      23.9053605
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 2773986,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Baise",
+      "state": "Guangxi Zhuang Autonomous Region",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        104.4482386,
+        25.1021341,
+        107.8829972,
+        22.8557517
+      ]
+    },
+    "distance_km": 4212,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/106.6148824,23.9053605;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "来宾": {
+    "city_ru": "Лайбинь",
+    "coordinates": [
+      109.2169807,
+      23.7532648
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 2775865,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Laibin",
+      "state": "Guangxi Zhuang Autonomous Region",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        108.4118572,
+        24.470489,
+        110.4560316,
+        23.269338
+      ]
+    },
+    "distance_km": 4383,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/109.2169807,23.7532648;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "铜川": {
+    "city_ru": "Тунчуань",
+    "coordinates": [
+      108.9403845,
+      34.8972729
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3226142,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Tongchuan",
+      "state": "Shaanxi Province",
+      "country": "China",
+      "postcode": "727031",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        108.5828881,
+        35.5820444,
+        109.4937717,
+        34.8093249
+      ]
+    },
+    "distance_km": 3124,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/108.9403845,34.8972729;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "儋州": {
+    "city_ru": "Даньчжоу",
+    "coordinates": [
+      109.5697188,
+      19.5173795
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 4531956197,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "district",
+      "name": "Danzhou",
+      "city": "Nada",
+      "county": "Danzhou",
+      "state": "Hainan",
+      "country": "China",
+      "countrycode": "CN"
+    },
+    "distance_km": 4982,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/109.5697188,19.5173795;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "河源": {
+    "city_ru": "Хэюань",
+    "coordinates": [
+      114.6954482,
+      23.746777
+    ],
+    "geocoder": {
+      "osm_type": "N",
+      "osm_id": 244080638,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Heyuan",
+      "county": "Yuancheng",
+      "state": "Guangdong Province",
+      "country": "China",
+      "postcode": "517000",
+      "countrycode": "CN"
+    },
+    "distance_km": 4763,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/114.6954482,23.746777;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "红河": {
+    "city_ru": "Хунхэ",
+    "coordinates": [
+      103.3622458,
+      23.3970868
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 2719414,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Mengzi",
+      "county": "Honghe",
+      "state": "Yunnan Province",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "6"
+      },
+      "extent": [
+        103.2101272,
+        23.575054,
+        103.8178045,
+        23.0183309
+      ]
+    },
+    "distance_km": 4141,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/103.3622458,23.3970868;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  },
+  "榆林": {
+    "city_ru": "Юйлинь",
+    "coordinates": [
+      109.7290052,
+      38.2851459
+    ],
+    "geocoder": {
+      "osm_type": "R",
+      "osm_id": 3016353,
+      "osm_key": "place",
+      "osm_value": "city",
+      "type": "city",
+      "name": "Yulin",
+      "state": "Shaanxi Province",
+      "country": "China",
+      "countrycode": "CN",
+      "extra": {
+        "admin_level": "5"
+      },
+      "extent": [
+        107.251115,
+        39.584937,
+        111.2419103,
+        36.8160612
+      ]
+    },
+    "distance_km": 2921,
+    "route_url": "https://router.project-osrm.org/route/v1/driving/109.7290052,38.2851459;80.418,44.217?overview=false",
+    "attribution": "© OpenStreetMap contributors; OSRM driving route; city centre to Khorgos, approximate"
+  }
+}

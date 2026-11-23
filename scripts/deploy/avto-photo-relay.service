@@ -1,0 +1,9 @@
+[Unit]
+Description=Cached original car photos via collector
+After=network-online.target
+[Service]
+ExecStart=/usr/bin/python3 /opt/avtopodborimport/photo_relay.py
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target

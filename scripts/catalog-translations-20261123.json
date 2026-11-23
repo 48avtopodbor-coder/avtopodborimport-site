@@ -1,0 +1,1878 @@
+{
+  "entries": [
+    {
+      "kind": "model",
+      "brand": "mazda",
+      "source": "马自达3 昂克赛拉",
+      "name": "3",
+      "slug": "3",
+      "reviewed": true,
+      "source_url": "https://www.mazda.com.cn/"
+    },
+    {
+      "kind": "model",
+      "brand": "kia",
+      "source": "奕跑",
+      "name": "KX1",
+      "slug": "kx1",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mazda",
+      "source": "阿特兹",
+      "name": "6 (Atenza)",
+      "slug": "6-atenza",
+      "reviewed": true,
+      "source_url": "https://www.mazda.com.cn/"
+    },
+    {
+      "kind": "model",
+      "brand": "mazda",
+      "source": "马自达CX-50行也",
+      "name": "CX-50",
+      "slug": "cx-50",
+      "reviewed": true,
+      "source_url": "https://www.mazda.com.cn/"
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪A6L新能源",
+      "name": "A6L (NEV)",
+      "slug": "a6l-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "hyundai",
+      "source": "悦动",
+      "name": "Elantra Yuedong",
+      "slug": "elantra-yuedong",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "kia",
+      "source": "焕驰",
+      "name": "Pegas",
+      "slug": "pegas",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "omoda",
+      "source": "欧萌达",
+      "name": "C5",
+      "slug": "c5",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "byd",
+      "source": "秦新能源",
+      "name": "Qin (NEV)",
+      "slug": "qin-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "haval",
+      "source": "哈弗大狗 PLUS",
+      "name": "Big Dog Plus",
+      "slug": "big-dog-plus",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "帝豪GS",
+      "name": "Emgrand GS",
+      "slug": "emgrand-gs",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "hyundai",
+      "source": "北京现代ix25",
+      "name": "ix25",
+      "slug": "ix25",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "haval",
+      "source": "哈弗初恋",
+      "name": "Jolion",
+      "slug": "jolion",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "帝豪L HiP",
+      "name": "Emgrand L HiP",
+      "slug": "emgrand-l-hip",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "exeed",
+      "source": "星途追风C-DM",
+      "name": "Zhuifeng C-DM",
+      "slug": "zhuifeng-c-dm",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "haval",
+      "source": "哈弗猛龙新能源",
+      "name": "Menglong (NEV)",
+      "slug": "menglong-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "changan",
+      "source": "长安UNI-K 智电iDD",
+      "name": "UNI-K iDD",
+      "slug": "uni-k-idd",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "红杉",
+      "name": "Sequoia",
+      "slug": "sequoia",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "凌尚",
+      "name": "Levin GT",
+      "slug": "levin-gt",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "haval",
+      "source": "哈弗大狗 PLUS 新能源",
+      "name": "Big Dog Plus PHEV",
+      "slug": "big-dog-plus-phev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLC轿跑 AMG",
+      "name": "AMG GLC Coupe",
+      "slug": "amg-glc-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "4Runner",
+      "name": "4Runner",
+      "slug": "4runner",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "tank",
+      "source": "坦克400新能源",
+      "name": "400 (NEV)",
+      "slug": "400-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "haval",
+      "source": "哈弗H6新能源",
+      "name": "H6 (NEV)",
+      "slug": "h6-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "一汽丰田bZ4X",
+      "name": "bZ4X",
+      "slug": "bz4x",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "chery",
+      "source": "瑞虎8 PLUS 鲲鹏e+",
+      "name": "Tiggo 8 Plus Kunpeng e+",
+      "slug": "tiggo-8-plus-kunpeng-e-plus",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE轿跑新能源",
+      "name": "GLE Coupe (NEV)",
+      "slug": "gle-coupe-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "帝豪L",
+      "name": "Emgrand L",
+      "slug": "emgrand-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "byd",
+      "source": "元新能源",
+      "name": "Yuan (NEV)",
+      "slug": "yuan-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "changan",
+      "source": "逸动DT",
+      "name": "Eado DT",
+      "slug": "eado-dt",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "卡罗拉双擎E+",
+      "name": "Corolla PHEV",
+      "slug": "corolla-phev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "兰德酷路泽(进口)LC76",
+      "name": "Land Cruiser 76",
+      "slug": "land-cruiser-76",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "丰田86",
+      "name": "86",
+      "slug": "86",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "byd",
+      "source": "唐",
+      "name": "Tang",
+      "slug": "tang",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "柯斯达",
+      "name": "Coaster",
+      "slug": "coaster",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X5新能源进口",
+      "name": "X5 (NEV)",
+      "slug": "x5-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "hyundai",
+      "source": "领动",
+      "name": "Elantra Lingdong",
+      "slug": "elantra-lingdong",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "hyundai",
+      "source": "帕里斯帝",
+      "name": "Palisade",
+      "slug": "palisade",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "兰德酷路泽(进口)",
+      "name": "Land Cruiser",
+      "slug": "land-cruiser",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "星越S",
+      "name": "Xingyue S",
+      "slug": "xingyue-s",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "changan",
+      "source": "逸动新能源",
+      "name": "Eado (NEV)",
+      "slug": "eado-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "嘉际新能源",
+      "name": "Jiaji (NEV)",
+      "slug": "jiaji-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "威兰达新能源",
+      "name": "Wildlander (NEV)",
+      "slug": "wildlander-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "hyundai",
+      "source": "悦纳",
+      "name": "Verna",
+      "slug": "verna",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "宝来·纯电",
+      "name": "Bora EV",
+      "slug": "bora-ev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "skoda",
+      "source": "柯迪亚克GT",
+      "name": "Kodiaq GT",
+      "slug": "kodiaq-gt",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪A8新能源",
+      "name": "A8 (NEV)",
+      "slug": "a8-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "li-auto",
+      "source": "理想L9/1.5T/22款/Max",
+      "name": "L9",
+      "slug": "l9",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "byd",
+      "source": "秦",
+      "name": "Qin",
+      "slug": "qin",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "chery",
+      "source": "艾瑞泽GX",
+      "name": "Arrizo GX",
+      "slug": "arrizo-gx",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "haval",
+      "source": "哈弗枭龙MAX",
+      "name": "Xiaolong Max",
+      "slug": "xiaolong-max",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "chery",
+      "source": "探索06",
+      "name": "Explore 06",
+      "slug": "explore-06",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "C-TREK蔚领",
+      "name": "C-TREK",
+      "slug": "c-trek",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "高尔夫·纯电",
+      "name": "e-Golf",
+      "slug": "e-golf",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "chery",
+      "source": "艾瑞泽5 GT",
+      "name": "Arrizo 5 GT",
+      "slug": "arrizo-5-gt",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "exeed",
+      "source": "星途瑶光",
+      "name": "Yaoguang",
+      "slug": "yaoguang",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "博瑞新能源",
+      "name": "Borui (NEV)",
+      "slug": "borui-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "帝豪新能源",
+      "name": "Emgrand (NEV)",
+      "slug": "emgrand-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "星越",
+      "name": "Xingyue",
+      "slug": "xingyue",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "缤越新能源",
+      "name": "Binyue (NEV)",
+      "slug": "binyue-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "skoda",
+      "source": "昕动",
+      "name": "Rapid Spaceback",
+      "slug": "rapid-spaceback",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "RAV4荣放双擎E+",
+      "name": "RAV4 PHEV",
+      "slug": "rav4-phev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "hyundai",
+      "source": "瑞纳",
+      "name": "Reina",
+      "slug": "reina",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "普拉多(进口)",
+      "name": "Land Cruiser Prado",
+      "slug": "land-cruiser-prado",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "雷凌双擎E+",
+      "name": "Levin PHEV",
+      "slug": "levin-phev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "hyundai",
+      "source": "ENCINO 昂希诺",
+      "name": "Encino",
+      "slug": "encino",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马425i/2.0T/22款/M运动套装",
+      "name": "4 Series Coupe",
+      "slug": "4-series-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "li-auto",
+      "source": "理想L8/1.5T/23款/Pro",
+      "name": "L8",
+      "slug": "l8",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰S400L/2.5T/23款/改款 豪华型",
+      "name": "S-Class L",
+      "slug": "s-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马5系",
+      "name": "5 Series",
+      "slug": "5-series",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "byd",
+      "source": "秦Pro新能源",
+      "name": "Qin Pro (NEV)",
+      "slug": "qin-pro-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GT50/3.0T/22款/四门跑车",
+      "name": "AMG GT 4-Door Coupe",
+      "slug": "amg-gt-4-door-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马840i/3.0T/21款/改款 四门轿跑车 M运动套装",
+      "name": "8 Series Gran Coupe",
+      "slug": "8-series-gran-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE AMG",
+      "name": "AMG GLE",
+      "slug": "amg-gle",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "chery",
+      "source": "瑞虎8 PRO新能源",
+      "name": "Tiggo 8 Pro (NEV)",
+      "slug": "tiggo-8-pro-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "chery",
+      "source": "瑞虎7 PLUS新能源",
+      "name": "Tiggo 7 Plus (NEV)",
+      "slug": "tiggo-7-plus-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪Q8",
+      "name": "Q8",
+      "slug": "q8",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰C级",
+      "name": "C-Class",
+      "slug": "c-class",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪Q6/2.5T/23款/50TFSI quattro行云型 飞骑套装",
+      "name": "Q6",
+      "slug": "q6",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪A7",
+      "name": "A7",
+      "slug": "a7",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰A45/2.0T/23款/4MATIC ",
+      "name": "AMG A 45",
+      "slug": "amg-a-45",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "探岳GTE插电混动",
+      "name": "Tayron GTE",
+      "slug": "tayron-gte",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰G350/2.0T/23款",
+      "name": "G-Class",
+      "slug": "g-class",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "途岳新能源",
+      "name": "e-Tharu",
+      "slug": "e-tharu",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "changan",
+      "source": "悦翔",
+      "name": "Yuexiang",
+      "slug": "yuexiang",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰E260/1.5T/21款/轿跑车",
+      "name": "E-Class Coupe",
+      "slug": "e-class-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "byd",
+      "source": "秦Pro",
+      "name": "Qin Pro",
+      "slug": "qin-pro",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "kia",
+      "source": "福瑞迪",
+      "name": "Forte",
+      "slug": "forte",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "hyundai",
+      "source": "昂希诺纯电动",
+      "name": "Encino EV",
+      "slug": "encino-ev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰V级",
+      "name": "V-Class",
+      "slug": "v-class",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "迈巴赫GLS480/3.0T/22款/4MATIC",
+      "name": "Maybach GLS",
+      "slug": "maybach-gls",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "tank",
+      "source": "坦克300/2.0T/21款/越野版  征服者",
+      "name": "300",
+      "slug": "300",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "tank",
+      "source": "坦克300/2.0T/21款/越野版 征服者",
+      "name": "300",
+      "slug": "300",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "Granvia(海外)",
+      "name": "Granvia",
+      "slug": "granvia",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "MR2 1998款 2.0L 手动",
+      "name": "MR2",
+      "slug": "mr2",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "兰德酷路泽(进口)LC79",
+      "name": "Land Cruiser 79",
+      "slug": "land-cruiser-79",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "凯美瑞/2.0/23款/2.0G 豪华版",
+      "name": "Camry",
+      "slug": "camry",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "埃尔法",
+      "name": "Alphard",
+      "slug": "alphard",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "埃尔法/2.5/21款/双擎  尊贵版",
+      "name": "Alphard",
+      "slug": "alphard",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪A5/2.0T/22款/Cabriolet 40 TFSI 吋尚动感型",
+      "name": "A5 Cabriolet",
+      "slug": "a5-cabriolet",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "威尔法/2.5/21款/皇冠 双擎 HV至尊版",
+      "name": "Vellfire",
+      "slug": "vellfire",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "威尔法/2.5/21款/皇冠 双擎 HV豪华版",
+      "name": "Vellfire",
+      "slug": "vellfire",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "威尔法/2.5/23款/皇冠 双擎 HV至尊版",
+      "name": "Vellfire",
+      "slug": "vellfire",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "威尔法/2.5/23款/皇冠双擎HV豪华版",
+      "name": "Vellfire",
+      "slug": "vellfire",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "广汽丰田bZ4X",
+      "name": "bZ4X",
+      "slug": "bz4x",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "普拉多进口 02款 4.0L 自动",
+      "name": "Land Cruiser Prado",
+      "slug": "land-cruiser-prado",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "格兰维亚",
+      "name": "Granvia",
+      "slug": "granvia",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "格瑞维亚/2.5L/22款/混动 旗舰版",
+      "name": "Granvia",
+      "slug": "granvia",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "赛那/2.5/21款/混动 舒适版",
+      "name": "Sienna",
+      "slug": "sienna",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "探岳 PHEV",
+      "name": "Tayron GTE",
+      "slug": "tayron-gte",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "朗逸纯电",
+      "name": "e-Lavida",
+      "slug": "e-lavida",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "途昂/2.0T/21款/380TSI 四驱尊崇豪华版",
+      "name": "Teramont",
+      "slug": "teramont",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "途观X/2.0T/21款/330TSI 两驱旗舰版",
+      "name": "Tiguan X",
+      "slug": "tiguan-x",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "途锐/3.0T/21款/3.0TSI 锐享版 曜黑运动套装",
+      "name": "Touareg",
+      "slug": "touareg",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "volkswagen",
+      "source": "途锐/3.0T/21款/3.0TSI锐享版 经典运动套装",
+      "name": "Touareg",
+      "slug": "touareg",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "toyota",
+      "source": "埃尔法/2.5/21款/双擎豪华版",
+      "name": "Alphard",
+      "slug": "alphard",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪A6L/2.0T/23款/改款 40 TFSI豪华致雅型",
+      "name": "A6L",
+      "slug": "a6l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪A7L/2.0T/22款/45TFSI S-line筑梦未来版",
+      "name": "A7L",
+      "slug": "a7l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪A8",
+      "name": "A8",
+      "slug": "a8",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪Q2L/1.5T/23款/35TFSI 时尚动感型",
+      "name": "Q2L",
+      "slug": "q2l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪Q5L/2.0T/22款/改款 40T 豪华动感型",
+      "name": "Q5L",
+      "slug": "q5l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪Q7/2.0T/21款/45TFSI quattro Sline运动型",
+      "name": "Q7",
+      "slug": "q7",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪Q7/3.0T/22款/55 TFSI quattro S line 运动型",
+      "name": "Q7",
+      "slug": "q7",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪S4/3.0T/22款/3.0TFSI",
+      "name": "S4",
+      "slug": "s4",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪S4/3.0T/23款/3.0TFSI",
+      "name": "S4",
+      "slug": "s4",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "audi",
+      "source": "奥迪SQ5/3.0T/21款/3.0 TFSI quattro",
+      "name": "SQ5",
+      "slug": "sq5",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马2系多功能旅行车",
+      "name": "2 Series Gran Tourer",
+      "slug": "2-series-gran-tourer",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马425i/2.0T/23款/M运动套装",
+      "name": "4 Series Coupe",
+      "slug": "4-series-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马430i/2.0T/22款/改款二 敞篷M运动曜夜套装",
+      "name": "4 Series Convertible",
+      "slug": "4-series-convertible",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马525Li/2.0T/22款/改款二 M运动套装",
+      "name": "5 Series L",
+      "slug": "5-series-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马530Li/2.0T/22款/改款 领先型M运动套装",
+      "name": "5 Series L",
+      "slug": "5-series-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马530Li/2.0T/22款/改款领先型M运动套装",
+      "name": "5 Series L",
+      "slug": "5-series-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马530i/2.0T/22款/M运动套装",
+      "name": "5 Series",
+      "slug": "5-series",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马6系GT",
+      "name": "6 Series Gran Turismo",
+      "slug": "6-series-gran-turismo",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马730Li/2.0T/21款/M运动套装",
+      "name": "7 Series L",
+      "slug": "7-series-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马7系",
+      "name": "7 Series",
+      "slug": "7-series",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马8系",
+      "name": "8 Series",
+      "slug": "8-series",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马M4/3.0T/21款/敞篷轿跑车 M xDrive雷霆版",
+      "name": "M4 Convertible",
+      "slug": "m4-convertible",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马M4/3.0T/22款/敞篷轿跑车 M xDrive 雷霆版",
+      "name": "M4 Convertible",
+      "slug": "m4-convertible",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X1新能源",
+      "name": "X1 (NEV)",
+      "slug": "x1-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X3/30i/2.0T/22款/改款二 xDrive 领先型 M曜夜套装",
+      "name": "X3",
+      "slug": "x3",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X3新能源进口",
+      "name": "X3 (NEV)",
+      "slug": "x3-nev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X4",
+      "name": "X4",
+      "slug": "x4",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X4M/3.0T/21款/M雷霆版",
+      "name": "X4 M",
+      "slug": "x4-m",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X4M/3.0T/21款/雷霆版",
+      "name": "X4 M",
+      "slug": "x4-m",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X5/30Li/2.0T/22款/改款 xDrive M运动套装",
+      "name": "X5 L",
+      "slug": "x5-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X5/30Li/2.0T/22款/改款xDrive 尊享型M运动套装",
+      "name": "X5 L",
+      "slug": "x5-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X5/30i/2.0T/21款/xDrive M运动套装",
+      "name": "X5",
+      "slug": "x5",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X5/40i/3.0T/21款/改款 xDrive 尊享型M运动套装",
+      "name": "X5",
+      "slug": "x5",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X6",
+      "name": "X6",
+      "slug": "x6",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X6/40i/3.0T/22款/xDrive 改款 尊享型M运动套装",
+      "name": "X6",
+      "slug": "x6",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X6/40i/3.0T/22款/改款二 xDrive 尊享型M运动套装",
+      "name": "X6",
+      "slug": "x6",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X7/40i/3.0T/21款/xDrive 行政型 豪华套装",
+      "name": "X7",
+      "slug": "x7",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X7/40i/3.0T/21款/改款 xDrive 领先型豪华套装",
+      "name": "X7",
+      "slug": "x7",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X7/40i/3.0T/22款/xDrive 领先型豪华套装",
+      "name": "X7",
+      "slug": "x7",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马Z4",
+      "name": "Z4",
+      "slug": "z4",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马Z4/M40i/3.0T/22款/M性能运动版",
+      "name": "Z4",
+      "slug": "z4",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "changan",
+      "source": "奔奔EV",
+      "name": "Benben EV",
+      "slug": "benben-ev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "changan",
+      "source": "长安CS55纯电版",
+      "name": "CS55 EV",
+      "slug": "cs55-ev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "changan",
+      "source": "长安新能源E-Pro",
+      "name": "E-Pro",
+      "slug": "e-pro",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "帝豪GSe",
+      "name": "Emgrand GSe",
+      "slug": "emgrand-gse",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "geely",
+      "source": "星越L增程电动版",
+      "name": "Xingyue L Hi-P",
+      "slug": "xingyue-l-hi-p",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "li-auto",
+      "source": "理想L8/1.5T/23款/MAX",
+      "name": "L8",
+      "slug": "l8",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "li-auto",
+      "source": "理想L8/1.5T/23款/Max",
+      "name": "L8",
+      "slug": "l8",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "li-auto",
+      "source": "理想ONE/1.2T/21款/增程6座版",
+      "name": "ONE",
+      "slug": "one",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰A45/2.0T/22款/AMG 4MATIC ",
+      "name": "AMG A 45",
+      "slug": "amg-a-45",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰C260/1.5T/21款/轿跑车",
+      "name": "C-Class Coupe",
+      "slug": "c-class-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰C260/1.5T/23款/轿跑车",
+      "name": "C-Class Coupe",
+      "slug": "c-class-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰C43/3.0T/19款/4MATIC",
+      "name": "AMG C 43",
+      "slug": "amg-c-43",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰C63/4.0T/21款/AMG 暗夜特别版",
+      "name": "AMG C 63",
+      "slug": "amg-c-63",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰CLA35/2.0T/22款/AMG  4MATIC",
+      "name": "AMG CLA 35",
+      "slug": "amg-cla-35",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰CLS300/2.0T/21款/豪华型",
+      "name": "CLS",
+      "slug": "cls",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰E260L/2.0T/22款/运动型",
+      "name": "E-Class L",
+      "slug": "e-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰E300L/2.0T/22款/改款三 运动时尚型",
+      "name": "E-Class L",
+      "slug": "e-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰E300L/2.0T/23款/改款 豪华型",
+      "name": "E-Class L",
+      "slug": "e-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰E300L/2.0T/23款/改款运动时尚型",
+      "name": "E-Class L",
+      "slug": "e-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰G500/4.0T/22款",
+      "name": "G-Class",
+      "slug": "g-class",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLA200/1.3T/22款/改款二",
+      "name": "GLA",
+      "slug": "gla",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLA220/2.0T/23款",
+      "name": "GLA",
+      "slug": "gla",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLC AMG",
+      "name": "AMG GLC",
+      "slug": "amg-glc",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLC260/2.0T/22款/改款 4MATIC 轿跑SUV",
+      "name": "GLC Coupe",
+      "slug": "glc-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLC300/2.0T/22款/改款4MATIC轿跑SUV",
+      "name": "GLC Coupe",
+      "slug": "glc-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLC43/3.0T/22款/4MTIC轿跑SUV",
+      "name": "AMG GLC Coupe",
+      "slug": "amg-glc-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLC43/3.0T/22款/AMG 4MATIC",
+      "name": "AMG GLC",
+      "slug": "amg-glc",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE350/2.0T/22款/4MATIC 时尚型",
+      "name": "GLE",
+      "slug": "gle",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE350/2.0T/23款/4MATIC 时尚型",
+      "name": "GLE",
+      "slug": "gle",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE350e/2.0T/21款/4MATIC 轿跑SUV",
+      "name": "GLE Coupe PHEV",
+      "slug": "gle-coupe-phev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE350e/2.0T/22款/4MATIC 轿跑SUV",
+      "name": "GLE Coupe PHEV",
+      "slug": "gle-coupe-phev",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE450/2.5T/21款/4MATIC 时尚型",
+      "name": "GLE",
+      "slug": "gle",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE450/2.5T/24款/4MATIC 动感型",
+      "name": "GLE",
+      "slug": "gle",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLE53/3.0T/24款/AMG 4MATIC ",
+      "name": "AMG GLE",
+      "slug": "amg-gle",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLS450/2.5T/21款/4MATIC 豪华型",
+      "name": "GLS",
+      "slug": "gls",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLS450/3.0T/21款/改款 4MATIC 时尚型",
+      "name": "GLS",
+      "slug": "gls",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLS450/3.0T/22款/4MATIC 时尚型",
+      "name": "GLS",
+      "slug": "gls",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GLS450/3.0T/23款/4MATIC 豪华型",
+      "name": "GLS",
+      "slug": "gls",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GT50/3.0T/22款/4MATIC 四门跑车",
+      "name": "AMG GT 4-Door Coupe",
+      "slug": "amg-gt-4-door-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GT50/3.0T/22款/4MATIC 四门跑车 China Edition",
+      "name": "AMG GT 4-Door Coupe",
+      "slug": "amg-gt-4-door-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰GT50/3.0T/22款/4MATIC＋四门跑车",
+      "name": "AMG GT 4-Door Coupe",
+      "slug": "amg-gt-4-door-coupe",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰S400L/2.5T/23款/商务型",
+      "name": "S-Class L",
+      "slug": "s-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰S400L/2.5T/23款/改款 商务型",
+      "name": "S-Class L",
+      "slug": "s-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰S450L/2.5T/22款/4MATIC",
+      "name": "S-Class L",
+      "slug": "s-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰SL级AMG",
+      "name": "AMG SL",
+      "slug": "amg-sl",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰V260L/2.0T/21款/长轴距豪华版",
+      "name": "V-Class L",
+      "slug": "v-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "mercedes-benz",
+      "source": "奔驰V260L/2.0T/22款/长轴距尊贵型/高顶改装版",
+      "name": "V-Class L",
+      "slug": "v-class-l",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "烟台",
+      "name": "Яньтай",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "泉州",
+      "name": "Цюаньчжоу",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "珠海",
+      "name": "Чжухай",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "达州",
+      "name": "Дачжоу",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "聊城",
+      "name": "Ляочэн",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "株洲",
+      "name": "Чжучжоу",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "衢州",
+      "name": "Цюйчжоу",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "郴州",
+      "name": "Чэньчжоу",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "长治",
+      "name": "Чанчжи",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "阜新",
+      "name": "Фусинь",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "萍乡",
+      "name": "Пинсян",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "玉林",
+      "name": "Юйлинь",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "河源",
+      "name": "Хэюань",
+      "slug": "",
+      "reviewed": true,
+      "geocode_query": "河源市",
+      "expected_state": "Guangdong Province"
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "玉溪",
+      "name": "Юйси",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "遂宁",
+      "name": "Суйнин",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "红河",
+      "name": "Хунхэ",
+      "slug": "",
+      "reviewed": true,
+      "geocode_query": "蒙自市",
+      "expected_state": "Yunnan Province"
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "贺州",
+      "name": "Хэчжоу",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "景德镇",
+      "name": "Цзиндэчжэнь",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "池州",
+      "name": "Чичжоу",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "贵港",
+      "name": "Гуйган",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "辽源",
+      "name": "Ляоюань",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "潜江",
+      "name": "Цяньцзян",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "鸡西",
+      "name": "Цзиси",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "榆林",
+      "name": "Юйлинь",
+      "slug": "",
+      "reviewed": true,
+      "geocode_query": "榆林市",
+      "expected_state": "Shaanxi Province"
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "济源",
+      "name": "Цзиюань",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "百色",
+      "name": "Байсэ",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "来宾",
+      "name": "Лайбинь",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "铜川",
+      "name": "Тунчуань",
+      "slug": "",
+      "reviewed": true
+    },
+    {
+      "kind": "city",
+      "brand": "",
+      "source": "儋州",
+      "name": "Даньчжоу",
+      "slug": "",
+      "reviewed": true
+    }
+  ],
+  "note": "Editorial model names. NEV retains the source new-energy designation without inferring EV versus PHEV. Road distances are deliberately not inferred from translation."
+}
