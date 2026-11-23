@@ -1,15 +1,37 @@
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 from car_titles import source_series, extract_title
+import photo_relay
 from photo_relay import allowed, image_type
 from translate_seller_descriptions import translate
 
 
 class PipelineTests(unittest.TestCase):
+    def test_failed_hosting_connection_has_backoff(self):
+        with patch.object(photo_relay, "CONNECT_AFTER", 0), patch.object(
+            photo_relay.time, "monotonic", return_value=100
+        ), patch.object(photo_relay.Path, "unlink"), patch.object(
+            photo_relay.subprocess, "run", return_value=SimpleNamespace(returncode=1)
+        ) as run:
+            self.assertFalse(photo_relay.ensure_master())
+            calls = run.call_count
+            self.assertFalse(photo_relay.ensure_master())
+            self.assertEqual(run.call_count, calls)
+
+    def test_existing_master_reuses_connection(self):
+        with patch.object(photo_relay, "CONNECT_AFTER", 0), patch.object(
+            photo_relay.subprocess, "run", return_value=SimpleNamespace(returncode=0)
+        ) as run:
+            self.assertTrue(photo_relay.ensure_master())
+            self.assertEqual(run.call_count, 1)
+            self.assertIn("check", run.call_args.args[0])
+
     def test_partial_dictionary_does_not_publish_chinese(self):
         self.assertEqual(
             translate("测试", {"descriptions": {"测试": "Тест 中文"}, "phrases": {}}),

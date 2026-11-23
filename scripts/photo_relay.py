@@ -8,10 +8,63 @@ import shlex
 import shutil
 import subprocess
 import threading
+import time
 from urllib.parse import parse_qs, urlsplit
 
 CACHE = Path("/opt/avtopodborimport/photo-cache")
 SLOTS = threading.BoundedSemaphore(2)
+MASTER_LOCK = threading.Lock()
+SSH_SOCKET = "/run/avto-photo-relay-ssh"
+CONNECT_AFTER = 0.0
+
+
+def ensure_master():
+    """Reuse one authenticated TCP connection and back off when hosting is unavailable."""
+    global CONNECT_AFTER
+    with MASTER_LOCK:
+        if time.monotonic() < CONNECT_AFTER:
+            return False
+        check = subprocess.run(
+            ["ssh", "-S", SSH_SOCKET, "-O", "check", "hosting"],
+            capture_output=True,
+            timeout=3,
+        )
+        if check.returncode == 0:
+            return True
+        Path(SSH_SOCKET).unlink(missing_ok=True)
+        try:
+            master = subprocess.run(
+                [
+                    "ssh",
+                    "-M",
+                    "-N",
+                    "-f",
+                    "-S",
+                    SSH_SOCKET,
+                    "-o",
+                    "BatchMode=yes",
+                    "-o",
+                    "ConnectTimeout=8",
+                    "-o",
+                    "ControlPersist=600",
+                    "-o",
+                    "ServerAliveInterval=30",
+                    "-o",
+                    "ServerAliveCountMax=2",
+                    "hosting",
+                ],
+                capture_output=True,
+                timeout=12,
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            CONNECT_AFTER = time.monotonic() + 120
+            return False
+        if master.returncode:
+            CONNECT_AFTER = time.monotonic() + 120
+            return False
+        return True
+
+
 REMOTE = """import http.client,sys
 from urllib.parse import urlsplit
 u=urlsplit(sys.stdin.read()); c=http.client.HTTPSConnection(u.hostname,timeout=20)
@@ -65,9 +118,20 @@ class Handler(BaseHTTPRequestHandler):
                 return
             try:
                 if not target.exists():
+                    if not ensure_master():
+                        self.send_response(503)
+                        self.send_header("Retry-After", "120")
+                        self.end_headers()
+                        return
                     result = subprocess.run(
                         [
                             "ssh",
+                            "-S",
+                            SSH_SOCKET,
+                            "-o",
+                            "ControlMaster=no",
+                            "-o",
+                            "ProxyCommand=false",
                             "-o",
                             "BatchMode=yes",
                             "-o",
