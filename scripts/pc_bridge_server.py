@@ -45,8 +45,12 @@ def work(limit):
     STATE.mkdir(parents=True, exist_ok=True)
     PENDING.mkdir(exist_ok=True)
     (STATE / "alive").touch()
+    request = STATE / "collect-request"
+    control = (
+        {"collect_request": request.read_text().strip()} if request.exists() else {}
+    )
     if shutil.disk_usage(CACHE).free < 4 * 1024**3:
-        return {"jobs": [], "reason": "disk reserve"}
+        return {"jobs": [], "reason": "disk reserve", **control}
     failed = json.loads(FAILED.read_text()) if FAILED.exists() else {}
     jobs = {}
     for p in sorted(
@@ -90,7 +94,7 @@ with psycopg2.connect("dbname=avtopodborimport user=postgres") as c:
             if len(jobs) >= limit:
                 break
     atomic_json(MANIFEST, jobs)
-    return {"jobs": list(jobs.values())}
+    return {"jobs": list(jobs.values()), **control}
 
 
 def receive():
@@ -159,6 +163,14 @@ def failed(keys):
         if re.fullmatch("[0-9a-f]{64}", key):
             values[key] = time.time() + 24 * 3600
     atomic_json(FAILED, {k: v for k, v in values.items() if v > time.time()})
+
+
+def acknowledge_collector(data):
+    request = STATE / "collect-request"
+    if request.exists() and request.read_text().strip() == data.get("request"):
+        request.unlink()
+        return {"acknowledged": True}
+    return {"acknowledged": False}
 
 
 def snapshot():
@@ -232,20 +244,23 @@ def snapshot():
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("command", choices=("work", "receive", "failed", "snapshot"))
+    p.add_argument(
+        "command", choices=("work", "receive", "failed", "snapshot", "ack-collect")
+    )
     p.add_argument("--limit", type=int, default=24)
     a = p.parse_args()
     if not 1 <= a.limit <= 100:
         p.error("limit must be 1..100")
-    result = (
-        work(a.limit)
-        if a.command == "work"
-        else (
-            receive()
-            if a.command == "receive"
-            else snapshot() if a.command == "snapshot" else failed(json.load(sys.stdin))
-        )
-    )
+    if a.command == "work":
+        result = work(a.limit)
+    elif a.command == "receive":
+        result = receive()
+    elif a.command == "snapshot":
+        result = snapshot()
+    elif a.command == "ack-collect":
+        result = acknowledge_collector(json.load(sys.stdin))
+    else:
+        result = failed(json.load(sys.stdin))
     print(json.dumps(result))
 
 

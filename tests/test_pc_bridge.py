@@ -13,6 +13,25 @@ import pc_bridge_server as bridge
 
 
 class BridgeTests(unittest.TestCase):
+    def test_collector_acknowledgment_preserves_a_newer_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state = Path(directory)
+            request = state / "collect-request"
+            request.write_text("new-request")
+            with patch.object(bridge, "STATE", state):
+                self.assertFalse(
+                    bridge.acknowledge_collector({"request": "old-request"})[
+                        "acknowledged"
+                    ]
+                )
+                self.assertTrue(request.exists())
+                self.assertTrue(
+                    bridge.acknowledge_collector({"request": "new-request"})[
+                        "acknowledged"
+                    ]
+                )
+                self.assertFalse(request.exists())
+
     def test_receiver_preserves_bytes_and_rejects_unrequested_paths(self):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

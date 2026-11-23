@@ -60,6 +60,27 @@ def transfer_snapshot(config, refresh):
 
 def batch(config, limit):
     work = call(config, "work --limit " + str(limit))
+    if work.get("collect_request"):
+        subprocess.run(
+            ssh(
+                config,
+                "avto-collector",
+                "cd /home/c/cc14862/che168 || exit 1; : > data/empty; setsid nohup sh run_hourly.sh > data/start.log 2>&1 < data/empty &",
+            ),
+            capture_output=True,
+            timeout=30,
+            check=True,
+        )
+        call(
+            config,
+            "ack-collect",
+            json.dumps({"request": work["collect_request"]}).encode(),
+        )
+        print(
+            time.strftime("%Y-%m-%d %H:%M:%S"),
+            "Collector start request delivered",
+            flush=True,
+        )
     jobs = work["jobs"]
     if not jobs:
         return 0
