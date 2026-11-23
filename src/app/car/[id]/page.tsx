@@ -209,7 +209,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
             <p className="text-gray-400 font-body text-sm mb-6">
               {car.year} · {car.city_display}
               {car.distance_km && (
-                <span className="ml-2 text-gray-600">
+                <span className="ml-2 text-gray-400">
                   · {car.distance_source ? "≈ " : ""}
                   {car.distance_km.toLocaleString("ru")} км до Хоргоса
                   {car.distance_source && (
@@ -220,7 +220,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
                         href="https://www.openstreetmap.org/copyright"
                         target="_blank"
                         rel="noreferrer"
-                        className="underline underline-offset-2 hover:text-gray-400"
+                        className="inline-block whitespace-nowrap underline underline-offset-2 hover:text-gray-300"
                         title="Примерный дорожный маршрут от центра города до Хоргоса: OSRM, данные © OpenStreetMap contributors"
                       >
                         © OpenStreetMap
