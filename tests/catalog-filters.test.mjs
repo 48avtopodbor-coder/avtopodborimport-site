@@ -22,6 +22,7 @@ function load(path, imports = {}) {
   return loadedModule.exports;
 }
 const filters = load("../src/lib/catalog-filters.ts");
+const { catalogNoScriptForm } = load("../src/lib/catalog-noscript.ts");
 const data = load("../src/lib/catalog-data.ts", {
   "./catalog-filters": filters,
   "@/lib/db": {},
@@ -82,4 +83,21 @@ test("brand counts exclude brand and models, model counts exclude only models", 
   assert.ok(!list.sql.includes("c.price_cny<="));
   assert.equal(list.values.at(-1), 3000000);
   assert.ok(!list.sql.includes("mazda"));
+});
+
+test("no-JS form preserves selections and escapes database text in static HTML", () => {
+  const f = filters.parseFilters({ brand: "mazda", model: "3,cx-30", yearFrom: "2021" });
+  const html = catalogNoScriptForm(f, {
+    brands: [{ slug: "mazda", name: 'Mazda </noscript><script>"&' }],
+    models: [
+      { slug: "3", name: "3" },
+      { slug: "cx-30", name: "CX-30" },
+    ],
+  });
+  assert.ok(html.includes('<option value="mazda" selected>'));
+  assert.ok(html.includes('<option value="cx-30" selected>'));
+  assert.ok(html.includes('value="2021"'));
+  assert.ok(html.includes("&lt;/noscript&gt;&lt;script&gt;&quot;&amp;"));
+  assert.ok(!html.includes("<script>"));
+  assert.ok(!html.includes("P:"));
 });

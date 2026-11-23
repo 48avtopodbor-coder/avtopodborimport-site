@@ -9,6 +9,7 @@ import {
 } from "@/lib/catalog-data";
 import CatalogFilters from "./CatalogFilters";
 import CatalogCard from "./CatalogCard";
+import { catalogNoScriptForm } from "@/lib/catalog-noscript";
 type Props = { searchParams: Promise<QueryInput> };
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const filters = await normalizeCatalogFilters(parseFilters(await searchParams));
@@ -43,66 +44,7 @@ export default async function UsedCatalogPage({ searchParams }: Props) {
           </p>
         </div>
         <CatalogFilters filters={current} initialFacets={facets} />
-        <noscript>
-          <form
-            action="/catalog/used"
-            className="mb-6 flex flex-wrap gap-3 rounded-xl bg-graphite-800 p-4 text-sm text-white"
-          >
-            <label>
-              Марка
-              <select
-                name="brand"
-                defaultValue={filters.brand}
-                className="ml-2 min-h-11 bg-graphite-900"
-              >
-                <option value="">Все марки</option>
-                {facets.brands.map((b) => (
-                  <option key={b.slug} value={b.slug}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {filters.brand && (
-              <label>
-                Модели
-                <select
-                  multiple
-                  name="model"
-                  defaultValue={filters.models}
-                  className="ml-2 bg-graphite-900"
-                >
-                  {facets.models.map((m) => (
-                    <option key={m.slug} value={m.slug}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label>
-              Год от
-              <input
-                name="yearFrom"
-                type="number"
-                defaultValue={filters.yearFrom}
-                className="ml-2 min-h-11 w-24 bg-graphite-900"
-              />
-            </label>
-            <label>
-              Пробег до
-              <input
-                name="mileageTo"
-                type="number"
-                defaultValue={filters.mileageTo}
-                className="ml-2 min-h-11 w-28 bg-graphite-900"
-              />
-            </label>
-            <button className="min-h-11 rounded-lg bg-orange-500 px-4 text-black">
-              Применить фильтры
-            </button>
-          </form>
-        </noscript>
+        <noscript dangerouslySetInnerHTML={{ __html: catalogNoScriptForm(filters, facets) }} />
         {list.total === 0 ? (
           <section className="rounded-xl bg-graphite-800 p-8 text-center">
             <h2 className="font-heading text-xl font-bold text-white">Ничего не нашли</h2>
