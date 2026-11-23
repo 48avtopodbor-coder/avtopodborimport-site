@@ -1,5 +1,5 @@
 #!/bin/sh
-# Публикует проверенный снимок и запускает импорт именно этого снимка.
+# Публикует проверенный снимок и запускает его импорт: 04:05 и 16:05 МСК, root cron.
 set -eu
 
 cd /srv/che168
@@ -51,7 +51,7 @@ sudo -u postgres env SQLITE_PATH="$snapshot" \
   python3 /opt/avtopodborimport/import_cars.py --published
 
 # Confirmed inactive listings were removed transactionally by the importer.
-# File cleanup retries through its timer if a photo batch currently owns the lock.
+# Both daily imports clean files; the timer retries when a photo batch owns the lock.
 python3 /opt/avtopodborimport/cleanup_sold_photos.py --apply
 if ! ssh -o BatchMode=yes -o ConnectTimeout=15 hosting \
   'cd /home/c/cc14862/che168 && python3 cleanup_collector_photos.py --apply'; then
