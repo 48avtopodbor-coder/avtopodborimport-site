@@ -1,0 +1,10 @@
+[Unit]
+Description=Retry sold car photo cleanup every 15 minutes
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=15min
+Unit=avto-sold-cleanup.service
+
+[Install]
+WantedBy=timers.target
