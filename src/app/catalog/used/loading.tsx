@@ -1,50 +1,17 @@
-import HeaderPhones from "@/components/layout/HeaderPhones";
-import HeaderHomeLink from "@/components/layout/HeaderHomeLink";
-
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-graphite-900">
-      <header className="border-b border-white/5 px-4 sm:px-6 py-4 flex flex-wrap gap-x-4 gap-y-2 items-center justify-between">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-5">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 shrink-0 bg-orange-500 rounded flex items-center justify-center">
-              <span className="font-bold text-white text-xs">AI</span>
-            </div>
-            <span className="font-bold text-white text-sm uppercase tracking-wider max-[420px]:max-w-[130px] max-[420px]:leading-4">
-              AVTOPODBOR IMPORT
-            </span>
-          </div>
-          <HeaderHomeLink />
-        </div>
-        <HeaderPhones className="w-full justify-between sm:w-auto sm:flex-col sm:max-[930px]:ml-auto" />
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <div className="h-8 w-64 bg-graphite-800 rounded animate-pulse mb-2" />
-          <div className="h-4 w-32 bg-graphite-800 rounded animate-pulse" />
-        </div>
-
-        <div className="flex gap-8">
-          <aside className="hidden lg:block w-56 shrink-0">
-            <div className="bg-graphite-800 rounded-xl p-4 h-96 animate-pulse" />
-          </aside>
-
-          <div className="flex-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-graphite-800 rounded-xl overflow-hidden animate-pulse">
-                  <div className="h-44 bg-graphite-700" />
-                  <div className="p-3">
-                    <div className="h-4 bg-graphite-700 rounded mb-2 w-3/4" />
-                    <div className="h-3 bg-graphite-700 rounded mb-2 w-1/2" />
-                    <div className="h-4 bg-graphite-700 rounded w-1/3" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+    <div
+      className="mx-auto max-w-7xl px-4 py-8 sm:px-6"
+      role="status"
+      aria-label="Загружаем автомобили"
+    >
+      <div className="mb-3 h-8 w-3/4 rounded-lg bg-graphite-800" />
+      <div className="mb-6 h-5 w-40 rounded bg-graphite-800" />
+      <div className="mb-6 h-11 w-full rounded-full bg-graphite-800" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 12 }, (_, i) => (
+          <div key={i} className="h-72 animate-pulse rounded-xl bg-graphite-800" />
+        ))}
       </div>
     </div>
   );
