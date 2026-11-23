@@ -241,7 +241,7 @@ function FilterControls({ filters, initialFacets }: { filters: Filters; initialF
           />
         </label>
         <div
-          className="max-h-64 overflow-y-auto overscroll-contain"
+          className="max-h-40 overflow-y-auto overscroll-contain [color-scheme:dark] lg:max-h-64"
           role="group"
           aria-label="Марки"
         >
@@ -295,7 +295,7 @@ function FilterControls({ filters, initialFacets }: { filters: Filters; initialF
               Все модели
             </button>
             <div
-              className="mt-3 flex max-h-72 flex-wrap gap-2 overflow-y-auto overscroll-contain"
+              className="mt-3 flex flex-wrap gap-2 [color-scheme:dark] lg:max-h-72 lg:overflow-y-auto lg:overscroll-contain"
               aria-busy={loading}
             >
               {(!loading || facetsBrand === draft.brand) &&
@@ -537,7 +537,7 @@ function FilterControls({ filters, initialFacets }: { filters: Filters; initialF
           ref={panel}
           role="dialog"
           aria-label={labels[open]}
-          className="mt-3 hidden overflow-hidden rounded-xl border border-white/10 bg-graphite-800 lg:block"
+          className={`mt-3 hidden overflow-hidden rounded-xl border border-white/10 bg-graphite-800 lg:block ${open === "brand" ? "w-full" : "max-w-lg"}`}
         >
           <div className="flex items-center justify-between px-6 pt-4">
             <h2 className="font-semibold text-white">{labels[open]}</h2>
@@ -581,7 +581,7 @@ function FilterControls({ filters, initialFacets }: { filters: Filters; initialF
         </div>
       )}
       {navigating && (
-        <p role="status" className="mt-2 text-sm text-gray-400">
+        <p role="status" className="sr-only">
           Обновляем каталог…
         </p>
       )}
@@ -635,7 +635,7 @@ function FilterControls({ filters, initialFacets }: { filters: Filters; initialF
                   ×
                 </button>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 [color-scheme:dark]">
                 {(["brand", "body", "price", "year"] as const).map((key) => (
                   <section key={key} className="border-t border-white/10">
                     <button

@@ -4,16 +4,22 @@ import fs from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 function load(path, imports = {}) {
-  const module = { exports: {} };
+  const loadedModule = { exports: {} };
   const source = ts.transpileModule(fs.readFileSync(new URL(path, import.meta.url), "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   vm.runInNewContext(
     source,
-    { module, exports: module.exports, URLSearchParams, Date, require: (name) => imports[name] },
+    {
+      module: loadedModule,
+      exports: loadedModule.exports,
+      URLSearchParams,
+      Date,
+      require: (name) => imports[name],
+    },
     { filename: path },
   );
-  return module.exports;
+  return loadedModule.exports;
 }
 const filters = load("../src/lib/catalog-filters.ts");
 const data = load("../src/lib/catalog-data.ts", {
