@@ -32,7 +32,7 @@ STATE_PATH = os.environ.get("IMPORT_STATE", "/var/lib/postgresql/import_cars.las
 BATCH = 1000
 
 # Столбцы машин: одинаковые имена в базе сборщика и в базе сайта.
-# local_photo, local_photo_2 и local_photo_3 есть только на сайте — импорт их не трогает.
+# local_photo, local_photo_2, local_photo_3 и local_photo_4 есть только на сайте — импорт их не трогает.
 CAR_COLS = [
     "listing_id", "url", "brand_ru", "brand_cn", "model", "year", "mileage_km",
     "price_cny", "price_wan", "gearbox", "fuel", "color", "city", "description", "images",

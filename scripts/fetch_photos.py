@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Локальные первые три фото машин в продаже.
+"""Локальные первые четыре фото машин в продаже.
 
 Новый сервер не может подключиться к серверам фото в Китае, а старый хостинг
 может. Поэтому хостинг последовательно получает изображения и передаёт их
@@ -9,8 +9,8 @@
 останавливается, и следующие два часа фото не запрашиваются.
 
 Первое фото сохраняется как <номер объявления>.<расширение>, следующие — как
-<номер объявления>_2 и <номер объявления>_3. Nginx отдаёт их из /photos/;
-PostgreSQL хранит пути в local_photo, local_photo_2 и local_photo_3.
+<номер объявления>_2, <номер объявления>_3 и <номер объявления>_4. Nginx отдаёт их из /photos/;
+PostgreSQL хранит пути в local_photo, local_photo_2, local_photo_3 и local_photo_4.
 Размер файла не ограничен: полученные изображения сохраняются без сжатия
 и изменения разрешения в том качестве, которое отдаёт URL источника.
 
@@ -53,16 +53,18 @@ SAVE_EVERY = 200
 ID_RE = re.compile(r"^[0-9A-Za-z_-]{1,40}$")
 URL_RE = re.compile(r"^https://[0-9a-z.-]+\.autoimg\.cn/[^\s\"'\\]+$")
 
-# На каждую машину берём максимум три исходных URL.
+# На каждую машину берём максимум четыре исходных URL.
 PHOTO_SOURCES_SQL = """
 WITH source AS (
-  SELECT listing_id::text AS listing_id, scraped_at, local_photo, local_photo_2, local_photo_3,
+  SELECT listing_id::text AS listing_id, scraped_at, local_photo, local_photo_2, local_photo_3, local_photo_4,
          COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>0 END,
                   CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>0 END) AS first_url,
          COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>1 END,
                   CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>1 END) AS second_url,
          COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>2 END,
-                  CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>2 END) AS third_url
+                  CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>2 END) AS third_url,
+         COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>3 END,
+                  CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>3 END) AS fourth_url
   FROM cars
   WHERE is_active = 1 AND price_cny > 0
 )
@@ -71,7 +73,7 @@ COUNT_SQL = PHOTO_SOURCES_SQL + """
 SELECT count(*)
 FROM source
 CROSS JOIN LATERAL (VALUES (1, first_url, local_photo), (2, second_url, local_photo_2),
-                           (3, third_url, local_photo_3))
+                           (3, third_url, local_photo_3), (4, fourth_url, local_photo_4))
   AS photo(photo_index, url, local_path)
 WHERE url IS NOT NULL AND local_path IS NULL;
 """
@@ -79,7 +81,7 @@ CANDIDATES_SQL = PHOTO_SOURCES_SQL + """
 SELECT listing_id, photo_index, url
 FROM source
 CROSS JOIN LATERAL (VALUES (1, first_url, local_photo), (2, second_url, local_photo_2),
-                           (3, third_url, local_photo_3))
+                           (3, third_url, local_photo_3), (4, fourth_url, local_photo_4))
   AS photo(photo_index, url, local_path)
 WHERE url IS NOT NULL AND local_path IS NULL
 ORDER BY photo_index ASC, scraped_at DESC
@@ -88,7 +90,8 @@ LIMIT %d;
 ON_SALE_SQL = """
 SELECT count(*) FILTER (WHERE local_photo IS NOT NULL) || '|' ||
        count(*) FILTER (WHERE local_photo_2 IS NOT NULL) || '|' ||
-       count(*) FILTER (WHERE local_photo_3 IS NOT NULL) || '|' || count(*)
+       count(*) FILTER (WHERE local_photo_3 IS NOT NULL) || '|' ||
+       count(*) FILTER (WHERE local_photo_4 IS NOT NULL) || '|' || count(*)
 FROM cars WHERE is_active = 1 AND price_cny > 0;
 """
 
@@ -208,14 +211,16 @@ def save(rows):
         "photos AS (SELECT id, "
         "max(p) FILTER (WHERE photo_index = 1) AS first_path, "
         "max(p) FILTER (WHERE photo_index = 2) AS second_path, "
-        "max(p) FILTER (WHERE photo_index = 3) AS third_path "
+        "max(p) FILTER (WHERE photo_index = 3) AS third_path, "
+        "max(p) FILTER (WHERE photo_index = 4) AS fourth_path "
         "FROM v GROUP BY id) "
         "UPDATE cars SET "
         "local_photo = COALESCE(cars.local_photo, photos.first_path), "
         "local_photo_2 = COALESCE(cars.local_photo_2, photos.second_path), "
-        "local_photo_3 = COALESCE(cars.local_photo_3, photos.third_path) "
+        "local_photo_3 = COALESCE(cars.local_photo_3, photos.third_path), "
+        "local_photo_4 = COALESCE(cars.local_photo_4, photos.fourth_path) "
         "FROM photos WHERE cars.listing_id::text = photos.id "
-        "AND (cars.local_photo IS NULL OR cars.local_photo_2 IS NULL OR cars.local_photo_3 IS NULL);"
+        "AND (cars.local_photo IS NULL OR cars.local_photo_2 IS NULL OR cars.local_photo_3 IS NULL OR cars.local_photo_4 IS NULL);"
     )
 
 
@@ -290,12 +295,12 @@ def save_failed(failed):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Первые три фото машин через старый хостинг")
+    ap = argparse.ArgumentParser(description="Первые четыре фото машин через старый хостинг")
     ap.add_argument("--limit", type=int, default=2000, help="сколько фото за запуск (2000)")
     ap.add_argument("--minutes", type=float, default=40, help="не дольше стольких минут (40)")
     ap.add_argument("--pause", type=float, default=0.3, help="пауза между фото, с (0.3)")
     ap.add_argument("--dry-run", action="store_true", help="только посчитать, ничего не скачивать")
-    ap.add_argument("--photo-index", type=int, choices=(1, 2, 3),
+    ap.add_argument("--photo-index", type=int, choices=(1, 2, 3, 4),
                     help="выбрать только одно фото для пробного запуска")
     args = ap.parse_args()
 
@@ -331,7 +336,7 @@ def main():
             url = "https:" + url
         elif url.startswith("http://"):
             url = "https://" + url[7:]
-        if not ID_RE.match(listing_id) or photo_index not in (1, 2, 3) or not URL_RE.match(url):
+        if not ID_RE.match(listing_id) or photo_index not in (1, 2, 3, 4) or not URL_RE.match(url):
             continue
         key = failure_key(listing_id, photo_index)
         if key in failed:
@@ -344,7 +349,7 @@ def main():
             have.append((listing_id, photo_index, path))
         else:
             todo.append((listing_id, photo_index, url))
-    print(f"{now()} первые три фото: без локального файла {missing}, "
+    print(f"{now()} первые четыре фото: без локального файла {missing}, "
           f"в очереди {len(have) + len(todo)}, файл уже есть у {len(have)}, скачать {len(todo)}"
           + (f", отложено после неудачи {skipped}" if skipped else ""), flush=True)
 
@@ -410,9 +415,11 @@ def main():
         except subprocess.TimeoutExpired:
             proc.kill()
         watchdog.cancel()
+        proc.stdout.close()
 
     errlog.seek(0)
     err_lines = errlog.read().decode("utf-8", "replace").splitlines()
+    errlog.close()
     stats = None
     for line in err_lines:
         if line.startswith("RESULT "):
@@ -438,14 +445,15 @@ def main():
     if stream_error and stats is not None:
         print(f"поток прервался: {stream_error}")
     on_sale = psql(ON_SALE_SQL).strip().split("|")
-    if len(on_sale) == 4:
+    if len(on_sale) == 5:
         print(f"{now()} готово за {time.time() - started:.0f} с: сохранено {len(done)} фото; "
               f"в продаже локально: главных {on_sale[0]}, вторых {on_sale[1]}, "
-              f"третьих {on_sale[2]} из {on_sale[3]}")
+              f"третьих {on_sale[2]}, четвёртых {on_sale[3]} из {on_sale[4]}")
     else:
         print(f"{now()} готово за {time.time() - started:.0f} с: сохранено {len(done)} фото")
     if bad:
         print(f"не удалось получить {len(bad)} фото; повтор через {FAILED_HOURS} ч")
+    lock.close()
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ interface Car extends CarTitleData {
   local_photo: string | null;
   local_photo_2: string | null;
   local_photo_3: string | null;
+  local_photo_4: string | null;
   scraped_at: string;
 }
 
@@ -104,7 +105,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               tr.translated_text AS translated_description,
               COALESCE(ct.city_ru, c.city) as city_display,
               ct.distance_km, ct.distance_source,
-              c.photos, c.images, c.local_photo, c.local_photo_2, c.local_photo_3, c.scraped_at
+              c.photos, c.images, c.local_photo, c.local_photo_2, c.local_photo_3, c.local_photo_4, c.scraped_at
        FROM cars c
        LEFT JOIN brands b ON b.id = c.brand_id
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
@@ -146,8 +147,8 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
   const tires = firstDisplayValue(spec?.tires, car.tires);
   const remotePhotos = getPhotos(car);
 
-  // Порядок берём из базы. Первые три фото подменяем локальными копиями, если они есть.
-  const localPhotos = [car.local_photo, car.local_photo_2, car.local_photo_3];
+  // Порядок берём из базы. Первые четыре фото подменяем локальными копиями, если они есть.
+  const localPhotos = [car.local_photo, car.local_photo_2, car.local_photo_3, car.local_photo_4];
   const photoSrcs = Array.from(
     { length: Math.max(remotePhotos.length, localPhotos.length) },
     (_, index) => {
