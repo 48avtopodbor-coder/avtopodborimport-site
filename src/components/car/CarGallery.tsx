@@ -2,7 +2,9 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import PhotoLightbox from "./PhotoLightbox";
+import dynamic from "next/dynamic";
+
+const PhotoLightbox = dynamic(() => import("./PhotoLightbox"), { ssr: false });
 
 interface CarGalleryProps {
   photos: string[];

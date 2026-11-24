@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent } from "react";
-import { createPortal } from "react-dom";
+import Lightbox, { type ZoomRef } from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import "yet-another-react-lightbox/styles.css";
 import styles from "./PhotoLightbox.module.css";
 
 interface PhotoLightboxProps {
@@ -12,284 +14,139 @@ interface PhotoLightboxProps {
   onClose: () => void;
 }
 
-interface Gesture {
-  pointerId: number;
-  x: number;
-  y: number;
-  direction: "horizontal" | "vertical" | null;
-}
-
 export default function PhotoLightbox({
   photos,
   initialIndex,
   title,
   onClose,
 }: PhotoLightboxProps) {
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
   const [index, setIndex] = useState(initialIndex);
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const [failedSource, setFailedSource] = useState<string | null>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const [zoomed, setZoomed] = useState(false);
+  const zoomRef = useRef<ZoomRef>(null);
+  const [thumbnailsVisible, setThumbnailsVisible] = useState(true);
   const stripRef = useRef<HTMLDivElement>(null);
-  const thumbnailRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const gestureRef = useRef<Gesture | null>(null);
-
-  useEffect(() => {
-    const scrollY = window.scrollY;
-    const previous = {
-      position: document.body.style.position,
-      top: document.body.style.top,
-      left: document.body.style.left,
-      right: document.body.style.right,
-      width: document.body.style.width,
-    };
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
-    requestAnimationFrame(() => dialogRef.current?.focus());
-
-    return () => {
-      Object.assign(document.body.style, previous);
-      window.scrollTo(0, scrollY);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (photos.length < 2) return;
-    const previous = (index - 1 + photos.length) % photos.length;
-    const next = (index + 1) % photos.length;
-    for (const neighbor of [previous, next]) {
-      const preload = new window.Image();
-      preload.src = photos[neighbor];
-    }
-  }, [index, photos]);
+  const selectedRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const strip = stripRef.current;
-    const thumbnail = thumbnailRefs.current[index];
-    if (!strip || !thumbnail) return;
-    strip.scrollTo({
-      left:
-        thumbnail.offsetLeft - strip.offsetLeft - (strip.clientWidth - thumbnail.clientWidth) / 2,
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "instant"
-        : "smooth",
-    });
-  }, [index, mounted, controlsVisible]);
+    const selected = selectedRef.current;
+    if (strip && selected)
+      strip.scrollTo({
+        left: selected.offsetLeft - (strip.clientWidth - selected.clientWidth) / 2,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+      });
+  }, [index, thumbnailsVisible]);
+  const slides = useMemo(
+    () => photos.map((src, photoIndex) => ({ src, alt: `${title} — фото ${photoIndex + 1}` })),
+    [photos, title],
+  );
 
-  function move(step: number) {
-    setIndex((current) => (current + step + photos.length) % photos.length);
-    setFailedSource(null);
-  }
+  if (!photos.length) return null;
 
-  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-    } else if (event.key === "ArrowLeft" && photos.length > 1) {
-      event.preventDefault();
-      move(-1);
-    } else if (event.key === "ArrowRight" && photos.length > 1) {
-      event.preventDefault();
-      move(1);
-    } else if (event.key === "Home") {
-      event.preventDefault();
-      setIndex(0);
-    } else if (event.key === "End") {
-      event.preventDefault();
-      setIndex(photos.length - 1);
-    } else if (event.key === "Tab") {
-      const buttons = Array.from(
-        dialogRef.current?.querySelectorAll<HTMLButtonElement>("button") ?? [],
-      ).filter(
-        (button) =>
-          button.getClientRects().length > 0 && getComputedStyle(button).visibility === "visible",
-      );
-      const first = buttons[0];
-      const last = buttons.at(-1);
-      if (
-        event.shiftKey &&
-        (document.activeElement === first || document.activeElement === dialogRef.current)
-      ) {
-        event.preventDefault();
-        last?.focus();
-      } else if (
-        !event.shiftKey &&
-        (document.activeElement === last || document.activeElement === dialogRef.current)
-      ) {
-        event.preventDefault();
-        first?.focus();
-      }
-    }
-  }
-
-  function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
-    if (event.pointerType === "mouse") return;
-    gestureRef.current = {
-      pointerId: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      direction: null,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
-    const start = gestureRef.current;
-    if (!start || start.pointerId !== event.pointerId || start.direction) return;
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) > 12) {
-      start.direction = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
-    }
-  }
-
-  function handlePointerUp(event: PointerEvent<HTMLButtonElement>) {
-    const start = gestureRef.current;
-    gestureRef.current = null;
-    if (!start || start.pointerId !== event.pointerId) return;
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < 45) {
-      setControlsVisible((visible) => !visible);
-      return;
-    }
-    if (start.direction === "horizontal") {
-      if (photos.length > 1) move(dx < 0 ? 1 : -1);
-    } else if (start.direction === "vertical" && dy > 90) {
-      onClose();
-    }
-  }
-
-  if (!mounted || photos.length === 0) return null;
-  const source = photos[index];
-
-  return createPortal(
-    <div
-      ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Фотографии автомобиля ${title}`}
-      tabIndex={-1}
-      onKeyDown={handleKeyDown}
-      className={styles.dialog}
-    >
-      <header className={`${styles.header} ${controlsVisible ? "" : styles.mobileHidden}`}>
-        <div className={styles.titleBlock}>
-          <strong className={styles.title} title={title}>
-            {title}
-          </strong>
-          <span className={styles.mobileCount}>
+  return (
+    <Lightbox
+      open
+      close={onClose}
+      index={index}
+      slides={slides}
+      plugins={[Zoom]}
+      className={styles.viewer}
+      portal={{ container: { "aria-label": `Фотографии автомобиля ${title}` } }}
+      carousel={{ preload: 1, padding: 0, spacing: "12%", imageFit: "contain" }}
+      controller={{ aria: true, closeOnPullDown: !zoomed, closeOnBackdropClick: false }}
+      zoom={{ ref: zoomRef, maxZoomPixelRatio: 2, zoomInMultiplier: 2, scrollToZoom: true }}
+      animation={{ fade: 180, swipe: 300, zoom: 250 }}
+      labels={{
+        "Photo gallery": "Фотогалерея",
+        Slide: "Снимок",
+        Carousel: "Галерея",
+        Lightbox: `Фотографии автомобиля ${title}`,
+        "{index} of {total}": "{index} из {total}",
+        Close: "Закрыть",
+        Next: "Вперёд",
+        Previous: "Назад",
+        "Zoom in": "Приблизить",
+        "Zoom out": "Отдалить",
+      }}
+      toolbar={{
+        buttons: [
+          <div key="title" className={styles.titleBlock}>
+            <strong className={styles.title} title={title}>
+              {title}
+            </strong>
+          </div>,
+          <span key="counter" className={styles.counter} aria-live="polite">
             {index + 1} / {photos.length}
-          </span>
-        </div>
-        <div className={styles.headerActions}>
-          <span className={styles.desktopCount}>
-            {index + 1} / {photos.length}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Закрыть"
-            className={styles.roundButton}
-          >
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-      </header>
-
-      <div className={styles.photoArea}>
-        {photos.length > 1 && (
-          <button
-            type="button"
-            onClick={() => move(-1)}
-            aria-label="Назад"
-            className={`${styles.roundButton} ${styles.previous}`}
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-        )}
-        <button
-          type="button"
-          aria-label="Показать или скрыть панель фотографий"
-          className={styles.photoButton}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={() => {
-            gestureRef.current = null;
-          }}
-        >
-          {failedSource === source ? (
-            <span className={styles.failed}>Не удалось загрузить фото</span>
-          ) : (
-            <Image
-              key={source}
-              src={source}
-              alt={`${title} — фото ${index + 1}`}
-              fill
-              sizes="100vw"
-              unoptimized
-              loading="eager"
-              fetchPriority="high"
-              className={styles.photo}
-              onError={() => setFailedSource(source)}
-            />
-          )}
-        </button>
-        {photos.length > 1 && (
-          <button
-            type="button"
-            onClick={() => move(1)}
-            aria-label="Вперёд"
-            className={`${styles.roundButton} ${styles.next}`}
-          >
-            <span aria-hidden="true">›</span>
-          </button>
-        )}
-      </div>
-
-      {photos.length > 1 && (
-        <div
-          className={`${styles.strip} ${controlsVisible ? "" : styles.mobileHidden}`}
-          ref={stripRef}
-          aria-label="Миниатюры фотографий"
-        >
-          {photos.map((src, photoIndex) => (
-            <button
-              key={`${src}-${photoIndex}`}
-              ref={(element) => {
-                thumbnailRefs.current[photoIndex] = element;
-              }}
-              type="button"
-              aria-label={`Показать фото ${photoIndex + 1}`}
-              aria-current={index === photoIndex ? "true" : undefined}
-              onClick={() => {
-                setIndex(photoIndex);
-                setFailedSource(null);
-              }}
-              className={`${styles.thumbnail} ${index === photoIndex ? styles.selected : ""}`}
-            >
-              <Image
-                src={src}
-                alt=""
-                fill
-                sizes="84px"
-                unoptimized
-                loading="lazy"
-                className={styles.thumbImage}
-              />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>,
-    document.body,
+          </span>,
+          "close",
+        ],
+      }}
+      render={{
+        buttonPrev: photos.length < 2 ? () => null : undefined,
+        buttonNext: photos.length < 2 ? () => null : undefined,
+        iconError: () => <span className={styles.error}>Не удалось загрузить фото</span>,
+        controls: () => (
+          <>
+            <p className={styles.hint}>
+              <span className={styles.desktopHint}>Двойной клик — приблизить</span>
+              <span className={styles.mobileHint}>
+                Два пальца — приблизить · касание — миниатюры
+              </span>
+            </p>
+            {photos.length > 1 && (
+              <div
+                ref={stripRef}
+                className={`${styles.strip} ${thumbnailsVisible ? "" : styles.hiddenStrip}`}
+                aria-label="Миниатюры фотографий"
+              >
+                {photos.map((src, photoIndex) => (
+                  <button
+                    key={`${src}-${photoIndex}`}
+                    ref={index === photoIndex ? selectedRef : undefined}
+                    type="button"
+                    aria-label={`Показать фото ${photoIndex + 1}`}
+                    aria-current={index === photoIndex ? "true" : undefined}
+                    className={`${styles.thumbnail} ${index === photoIndex ? styles.selected : ""}`}
+                    onClick={() => setIndex(photoIndex)}
+                  >
+                    <Image
+                      src={src}
+                      alt=""
+                      fill
+                      sizes="84px"
+                      unoptimized
+                      loading="lazy"
+                      className={styles.thumbImage}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        ),
+      }}
+      on={{
+        entered: () => {
+          const strip = stripRef.current;
+          const selected = selectedRef.current;
+          if (strip && selected)
+            strip.scrollTo({
+              left: selected.offsetLeft - (strip.clientWidth - selected.clientWidth) / 2,
+            });
+        },
+        view: ({ index: current }) => setIndex(current),
+        zoom: ({ zoom }) => setZoomed(zoom > 1.01),
+        click: () => {
+          if (
+            window.matchMedia("(max-width: 600px)").matches &&
+            (zoomRef.current?.zoom ?? 1) <= 1.01
+          ) {
+            setThumbnailsVisible((visible) => !visible);
+          }
+        },
+      }}
+    />
   );
 }
