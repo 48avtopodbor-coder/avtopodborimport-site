@@ -40,6 +40,52 @@ class DetailsRecoveryTests(unittest.TestCase):
         self.module.spec_info('42', '100')
         self.assertEqual(self.db.execute('SELECT count(*) FROM specs').fetchone()[0], 0)
 
+    def test_source_color_combinations_keep_both_parts_and_order(self):
+        expected = {
+            "银/灰色": "серебристый / серый",
+            "红/紫色": "красный / фиолетовый",
+            "香槟/棕色": "шампань / коричневый",
+            "黄/橙色": "жёлтый / оранжевый",
+            "灰色 / 银色": "серый / серебристый",
+            "黑色／白色": "чёрный / белый",
+            "未知色/灰色": "未知色 / серый",
+        }
+        for source, translated in expected.items():
+            with self.subTest(source=source):
+                self.assertEqual(self.module.color_ru(source), translated)
+        for source in (None, "", " "):
+            self.assertIsNone(self.module.color_ru(source))
+        self.assertEqual(self.module.color_ru("银/"), "银/")
+
+    def test_color_backfill_uses_original_and_can_be_repeated(self):
+        import io
+        self.db.execute('CREATE TABLE cars (listing_id TEXT,color TEXT,details_json TEXT,is_active INTEGER)')
+        self.db.executemany('INSERT INTO cars VALUES (?,?,?,?)', [
+            ('mazda', 'серый', json.dumps({'colorname': '银/灰色'}), 1),
+            ('plain', 'белый', json.dumps({'colorname': '白色'}), 1),
+            ('invalid', 'серый', 'invalid json', 1),
+            ('missing', 'чёрный', '{}', 1),
+            ('array', 'чёрный', '[]', 1),
+        ])
+        path = Path(__file__).parents[1] / 'scripts/collector/backfill_source_colors.py'
+        spec = importlib.util.spec_from_file_location('color_backfill_under_test', path)
+        module = importlib.util.module_from_spec(spec)
+        database = types.SimpleNamespace(get_conn=lambda: contextlib.nullcontext(self.db))
+        with patch.dict(sys.modules, {'details': self.module, 'database': database}):
+            spec.loader.exec_module(module)
+        with patch.object(sys, 'argv', ['backfill']), contextlib.redirect_stdout(io.StringIO()):
+            module.main()
+        self.assertEqual(self.db.execute("SELECT color FROM cars WHERE listing_id='mazda'").fetchone()[0], 'серый')
+        output = io.StringIO()
+        with patch.object(sys, 'argv', ['backfill', '--apply']), contextlib.redirect_stdout(output):
+            module.main()
+            module.main()
+        self.assertEqual([json.loads(line)['changed'] for line in output.getvalue().splitlines()], [1, 0])
+        self.assertEqual([tuple(row) for row in self.db.execute('SELECT listing_id,color FROM cars ORDER BY listing_id')], [
+            ('array', 'чёрный'), ('invalid', 'серый'), ('mazda', 'серебристый / серый'),
+            ('missing', 'чёрный'), ('plain', 'белый'),
+        ])
+
     def test_old_incomplete_cache_is_refetched_and_repaired(self):
         self.db.execute("INSERT INTO specs (spec_id,full) VALUES ('42',1)")
         self.api.car_params.return_value = [('基本参数', [('能源类型', '汽油'), ('驱动方式', '前驱'), ('最大马力(Ps)', '150')])]

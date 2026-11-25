@@ -55,9 +55,19 @@ def _num(x):
 
 def color_ru(c):
     c = str(c or "").strip()
-    if c in ("其他", "其它", "其他颜色", "其它颜色"):
-        return "другой"
-    return next((ru for cn, ru in COLORS if cn in c), c or None)
+    if not c:
+        return None
+    # Che168 groups some colours (e.g. 银/灰色). Keep every part in source order.
+    parts = re.split(r"\s*[/／]\s*", c)
+    if not all(parts):
+        return c
+    translated = []
+    for part in parts:
+        if part in ("其他", "其它", "其他颜色", "其它颜色"):
+            translated.append("другой")
+        else:
+            translated.append(next((ru for cn, ru in COLORS if cn in part), part))
+    return " / ".join(translated)
 
 
 def fuel_ru(v):
