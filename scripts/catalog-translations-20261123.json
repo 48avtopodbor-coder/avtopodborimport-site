@@ -1872,6 +1872,14 @@
       "name": "Даньчжоу",
       "slug": "",
       "reviewed": true
+    },
+    {
+      "kind": "model",
+      "brand": "bmw",
+      "source": "宝马X5新能源(进口)",
+      "name": "X5 (NEV)",
+      "slug": "x5-nev",
+      "reviewed": true
     }
   ],
   "note": "Editorial model names. NEV retains the source new-energy designation without inferring EV versus PHEV. Road distances are deliberately not inferred from translation."
