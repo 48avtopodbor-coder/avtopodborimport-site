@@ -125,6 +125,34 @@ const ORDERS = {
   mileage_asc: "c.mileage_km ASC NULLS LAST",
   year_desc: "c.year DESC NULLS LAST",
 };
+// Rank models inside each brand, then interleave brands. The full matching set
+// is ranked before LIMIT/OFFSET, so pagination is stable and does not repeat cars.
+export function catalogListQuery(f: CatalogFilters, limit: number, offset: number) {
+  const where = catalogWhere(f);
+  const select = `c.listing_id,c.brand_ru,c.model,c.year,c.mileage_km,c.price_cny,c.fuel,s.fuel AS spec_fuel,COALESCE(c.gearbox,s.gearbox) AS gearbox,c.color,c.city,COALESCE(ct.city_ru,c.city) AS city_display,c.photos,c.images,c.local_photo`;
+  const pagination = `LIMIT $${where.values.length + 1} OFFSET $${where.values.length + 2}`;
+  const matched = `${select} ${FROM} LEFT JOIN city_translations ct ON ct.city_cn=c.city WHERE ${where.sql}`;
+  const sql =
+    f.sort === "diverse"
+      ? `WITH matched AS (
+        SELECT c.listing_id,c.scraped_at AS added_at,
+          COALESCE(b.slug,c.brand_ru,'') AS brand_key,
+          COALESCE(NULLIF(c.model_slug,''),NULLIF(c.model_name,''),c.model,'') AS model_key
+        ${FROM} LEFT JOIN city_translations ct ON ct.city_cn=c.city WHERE ${where.sql}
+      ), model_ranks AS (
+        SELECT *,row_number() OVER (PARTITION BY brand_key,model_key ORDER BY added_at DESC NULLS LAST,listing_id DESC) AS model_position FROM matched
+      ), brand_ranks AS (
+        SELECT *,row_number() OVER (PARTITION BY brand_key ORDER BY model_position,added_at DESC NULLS LAST,listing_id DESC) AS brand_position FROM model_ranks
+      ) , picked AS (
+        SELECT listing_id,brand_position,model_position,added_at
+        FROM brand_ranks ORDER BY brand_position,model_position,added_at DESC NULLS LAST,listing_id DESC ${pagination}
+      ) SELECT ${select} ${FROM}
+        LEFT JOIN city_translations ct ON ct.city_cn=c.city
+        JOIN picked p ON p.listing_id=c.listing_id
+        ORDER BY p.brand_position,p.model_position,p.added_at DESC NULLS LAST,c.listing_id DESC`
+      : `SELECT ${matched} ORDER BY ${ORDERS[f.sort]},c.listing_id DESC ${pagination}`;
+  return { sql, values: [...where.values, limit, offset] };
+}
 export async function getCatalogList(f: CatalogFilters) {
   const where = catalogWhere(f),
     pageSize = 24;
@@ -134,9 +162,7 @@ export async function getCatalogList(f: CatalogFilters) {
   );
   const total: number = count.rows[0].total;
   const page = Math.min(f.page, Math.max(1, Math.ceil(total / pageSize)));
-  const cars = await pool.query<CatalogCar>(
-    `SELECT c.listing_id,c.brand_ru,c.model,c.year,c.mileage_km,c.price_cny,c.fuel,s.fuel AS spec_fuel,COALESCE(c.gearbox,s.gearbox) AS gearbox,c.color,c.city,COALESCE(ct.city_ru,c.city) AS city_display,c.photos,c.images,c.local_photo ${FROM} LEFT JOIN city_translations ct ON ct.city_cn=c.city WHERE ${where.sql} ORDER BY ${ORDERS[f.sort]},c.listing_id DESC LIMIT $${where.values.length + 1} OFFSET $${where.values.length + 2}`,
-    [...where.values, pageSize, (page - 1) * pageSize],
-  );
+  const query = catalogListQuery(f, pageSize, (page - 1) * pageSize);
+  const cars = await pool.query<CatalogCar>(query.sql, query.values);
   return { items: cars.rows, total, page, pageSize };
 }

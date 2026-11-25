@@ -37,7 +37,7 @@ test("unsafe and malformed URL values do not become SQL or negative pagination",
     body: "suv,not-a-body,constructor",
     mileageTo: "100000000000",
   });
-  assert.equal(f.sort, "newest");
+  assert.equal(f.sort, "diverse");
   assert.equal(f.brand, "");
   assert.equal(f.page, 1);
   assert.equal(f.yearFrom, undefined);
@@ -100,4 +100,29 @@ test("no-JS form preserves selections and escapes database text in static HTML",
   assert.ok(html.includes("&lt;/noscript&gt;&lt;script&gt;&quot;&amp;"));
   assert.ok(!html.includes("<script>"));
   assert.ok(!html.includes("P:"));
+});
+
+test("default catalog interleaves models and brands before stable pagination", () => {
+  const f = filters.parseFilters({});
+  assert.equal(f.sort, "diverse");
+  assert.equal(filters.emptyFilters().sort, "diverse");
+  assert.equal(filters.filterParams(f).has("sort"), false);
+  const q = data.catalogListQuery(f, 24, 24);
+  assert.ok(q.sql.includes("PARTITION BY brand_key,model_key"));
+  assert.ok(q.sql.includes("PARTITION BY brand_key ORDER BY model_position"));
+  assert.ok(q.sql.indexOf("FROM brand_ranks ORDER BY") < q.sql.indexOf("LIMIT"));
+  assert.deepEqual(Array.from(q.values), [24, 24]);
+});
+test("explicit newest and price sorts retain URL and strict ordering", () => {
+  for (const sort of ["newest", "price_asc"]) {
+    const f = filters.parseFilters({ brand: "mazda", model: "cx-5", sort });
+    const q = data.catalogListQuery(f, 24, 0);
+    assert.equal(filters.filterParams(f).get("sort"), sort);
+    assert.equal(filters.parseFilters(Object.fromEntries(filters.filterParams(f))).sort, sort);
+    assert.ok(!q.sql.includes("row_number()"));
+    assert.ok(
+      q.sql.includes(sort === "newest" ? "ORDER BY c.scraped_at DESC" : "ORDER BY c.price_cny ASC"),
+    );
+    assert.deepEqual(JSON.parse(JSON.stringify(q.values)), ["mazda", ["cx-5"], 24, 0]);
+  }
 });
