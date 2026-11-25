@@ -16,7 +16,11 @@ function load(path, imports = {}) {
       jsx: ts.JsxEmit.ReactJSX,
     },
   }).outputText;
-  vm.runInNewContext(source, { module, exports: module.exports, require: (key) => imports[key] });
+  vm.runInNewContext(source, {
+    module: loadedModule,
+    exports: loadedModule.exports,
+    require: (key) => imports[key],
+  });
   return loadedModule.exports;
 }
 const translations = load("../src/lib/equipment-translations.ts");
