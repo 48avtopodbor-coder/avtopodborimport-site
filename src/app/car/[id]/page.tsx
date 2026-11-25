@@ -343,13 +343,14 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               {equipment.map(({ title, items }) => (
                 <div key={title} className="bg-graphite-800 rounded-xl p-5 min-w-0">
                   <h3 className="font-heading font-bold text-white text-sm mb-3">{title}</h3>
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {items.map(({ label, status }) => (
-                      <li key={label} className="flex justify-between gap-3 text-sm font-body">
-                        <span className="text-gray-400 min-w-0 [overflow-wrap:anywhere]">
-                          {label}
-                        </span>
-                        <span className="text-white shrink-0">{status}</span>
+                      <li
+                        key={label}
+                        className="space-y-1 text-sm font-body [overflow-wrap:anywhere]"
+                      >
+                        <span className="block text-white">{label}</span>
+                        <span className="block text-gray-400">{status}</span>
                       </li>
                     ))}
                   </ul>

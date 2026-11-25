@@ -1,4 +1,7 @@
-type EquipmentItem = { label: string; status: "Штатно" | "Опция" };
+type EquipmentItem = {
+  label: string;
+  status: "В стандартной комплектации" | "Дополнительно — наличие уточняется";
+};
 type EquipmentGroup = { title: string; items: EquipmentItem[] };
 
 const groups: { title: string; sections: string[]; names: Record<string, string> }[] = [
@@ -94,7 +97,11 @@ export function modelEquipment(raw: unknown): EquipmentGroup[] {
           const label = names[item[0]];
           const value = item[1].trim();
           if (label && (value === "●" || value === "○")) {
-            items.push({ label, status: value === "●" ? "Штатно" : "Опция" });
+            items.push({
+              label,
+              status:
+                value === "●" ? "В стандартной комплектации" : "Дополнительно — наличие уточняется",
+            });
           }
         }
       }
