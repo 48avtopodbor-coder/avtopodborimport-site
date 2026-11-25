@@ -10,6 +10,7 @@ export const BODY_NAMES: Record<string, string> = {
   van: "Фургон / микроавтобус",
 };
 export const SORT_NAMES = {
+  diverse: "Разные марки и модели",
   newest: "Сначала новые",
   price_asc: "Сначала дешевле",
   price_desc: "Сначала дороже",
@@ -52,7 +53,7 @@ export function parseFilters(input: QueryInput): CatalogFilters {
   };
   const brandValue = value("brand").trim().toLowerCase().replace(/\s+/g, "-");
   const brand = slug(brandValue) ? brandValue : "";
-  const sort = Object.hasOwn(SORT_NAMES, value("sort")) ? (value("sort") as Sort) : "newest";
+  const sort = Object.hasOwn(SORT_NAMES, value("sort")) ? (value("sort") as Sort) : "diverse";
   const result: CatalogFilters = {
     brand,
     models: brand ? list("model") : [],
@@ -93,7 +94,7 @@ export function filterParams(f: CatalogFilters, includePage = true) {
     "mileageTo",
   ] as const)
     if (f[key] !== undefined) p.set(key, String(f[key]));
-  if (f.sort !== "newest") p.set("sort", f.sort);
+  if (f.sort !== "diverse") p.set("sort", f.sort);
   if (f.fuel) p.set("fuel", f.fuel);
   if (includePage && f.page > 1) p.set("page", String(f.page));
   return p;
@@ -114,5 +115,5 @@ export function activeFilterCount(f: CatalogFilters) {
   );
 }
 export function emptyFilters(): CatalogFilters {
-  return { brand: "", models: [], bodies: [], sort: "newest", page: 1 };
+  return { brand: "", models: [], bodies: [], sort: "diverse", page: 1 };
 }
