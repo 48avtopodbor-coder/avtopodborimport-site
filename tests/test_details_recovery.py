@@ -1,5 +1,6 @@
 import contextlib
 import importlib.util
+import json
 from pathlib import Path
 import sqlite3
 import sys
@@ -40,9 +41,34 @@ class DetailsRecoveryTests(unittest.TestCase):
         self.assertEqual(self.db.execute("SELECT full FROM specs WHERE spec_id='42'").fetchone()[0], 1)
 
     def test_complete_cache_avoids_duplicate_api_request(self):
-        self.db.execute("INSERT INTO specs (spec_id,full,fuel,drive,power_hp) VALUES ('42',1,'электро','полный',400)")
+        self.db.execute("INSERT INTO specs (spec_id,full,fuel,drive,power_hp,params_json) VALUES ('42',1,'электро','полный',400,?)", (json.dumps([["基本参数", [["CLTC纯电续航里程(km)", "600"]]]]),))
         self.assertEqual(self.module.spec_info('42', '100')['power_hp'], 400)
         self.api.car_params.assert_not_called()
+
+    def test_current_api_spec_id_takes_priority_over_stale_listing_cache(self):
+        self.api.car_info = Mock(return_value=({"specid": 99, "carname": "海豚 2023款", "colorname": "白色"}, 0, ""))
+        with patch.object(self.module, "spec_info", return_value={"fuel": "электро"}) as get_spec, patch.object(self.module, "save") as save:
+            self.module.handle("100", "42")
+        get_spec.assert_called_once_with("99", "100", "海豚 2023款")
+        self.assertEqual(save.call_args.args[1]["spec_id"], "99")
+
+    def test_ev_cache_without_range_is_not_reused(self):
+        row = {"fuel": "электро", "drive": "полный", "power_hp": 400, "params_json": "[]"}
+        self.assertFalse(self.module.reusable_spec_cache(row))
+        row["fuel"] = "бензин"
+        self.assertTrue(self.module.reusable_spec_cache(row))
+
+    def test_ev_model_year_change_refreshes_cache_without_using_registration_year(self):
+        row = {"fuel": "электро", "drive": "задний", "power_hp": 204,
+               "params_json": json.dumps([["基本参数", [["车型名称", "ID.4 CROZZ 2022款 长续航PURE+版"], ["CLTC纯电续航里程(km)", "600"]]]])}
+        self.assertFalse(self.module.reusable_spec_cache(row, "ID.4 CROZZ 2024款 PURE+"))
+        self.assertTrue(self.module.reusable_spec_cache(row, "ID.4 CROZZ 2022款 长续航PURE+版"))
+        self.assertTrue(self.module.reusable_spec_cache(row))
+
+    def test_ev_conflicting_range_is_not_reused(self):
+        row = {"fuel": "электро", "drive": "полный", "power_hp": 400,
+               "params_json": json.dumps([["基本参数", [["CLTC纯电续航里程(km)", "600"], ["CLTC纯电续航里程(km)", "700"]]]])}
+        self.assertFalse(self.module.reusable_spec_cache(row))
 
     def test_engine_volume_uses_explicit_units_and_prefers_precise_ml(self):
         self.assertEqual(self.module.engine_ml({'排量(L)': '1.5'}), 1500)

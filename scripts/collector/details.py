@@ -138,14 +138,42 @@ def photo_urls(piclist) -> list:
     return out[:MAX_PHOTOS]
 
 
-def spec_info(spec_id, infoid):
+def reusable_spec_cache(row, expected_model=None):
+    """An EV cache must have usable range data and the same known model year."""
+    if not has_core_specs(row):
+        return False
+    if row.get("fuel") != "электро":
+        return True
+    try:
+        groups = json.loads(row.get("params_json") or "[]")
+        entries = [(key, value) for _, items in groups for key, value in items]
+    except (ValueError, TypeError):
+        return False
+    ranges = {}
+    for key, value in entries:
+        match = re.fullmatch(r"(NEDC|CLTC|WLTC|WLTP)?纯电续航里程[（(]km[）)]", str(key))
+        if match and re.fullmatch(r"\d+(?:\.\d+)?", str(value)) and float(value) > 0:
+            ranges.setdefault(match.group(1), set()).add(float(value))
+    if not ranges or any(len(values) != 1 for values in ranges.values()):
+        return False
+    expected_year = re.search(r"(?:19|20)\d{2}款", expected_model or "")
+    if expected_year:
+        for key, value in entries:
+            if key == "车型名称":
+                cached_year = re.search(r"(?:19|20)\d{2}款", str(value))
+                if cached_year and cached_year.group() != expected_year.group():
+                    return False
+    return True
+
+
+def spec_info(spec_id, infoid, expected_model=None):
     """Параметры комплектации: из таблицы specs, а если их там нет — 1 запрос к API и запись в specs."""
     if spec_id:
         with get_conn() as conn:
-            row = conn.execute("SELECT fuel, drive, gearbox, power_hp, engine_ml, tires, params_text "
+            row = conn.execute("SELECT fuel, drive, gearbox, power_hp, engine_ml, tires, params_text, params_json "
                                "FROM specs WHERE spec_id = ? AND full = 1", (spec_id,)).fetchone()
-        if row and has_core_specs(dict(row)):
-            return dict(row)
+        if row and reusable_spec_cache(dict(row), expected_model):
+            return {k: v for k, v in dict(row).items() if k != "params_json"}
     groups = api.car_params(infoid)
     if groups is None:
         return None
@@ -206,8 +234,8 @@ def handle(listing_id, spec_id) -> str:
             logger.warning("   {}: ответ {} {}", listing_id, rc, msg[:60])
         return "fail"
 
-    spec_id = spec_id or str(info.get("specid") or "") or None
-    got = spec_info(spec_id, listing_id)       # None — API характеристик не ответил
+    spec_id = str(info.get("specid") or spec_id or "") or None
+    got = spec_info(spec_id, listing_id, info.get("carname"))       # None — API характеристик не ответил
     s = got or {}
     photos = photo_urls(info.get("piclist"))
     # Все простые поля карточки (описание продавца, владельцы, страховка, техосмотр...)

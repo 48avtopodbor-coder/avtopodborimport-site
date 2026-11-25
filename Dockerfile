@@ -27,6 +27,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/seller-dictionary.json ./seller-dictionary.json
 
+# Read-only catalog audit shares the exact frontend formatters.
+COPY --from=builder /app/scripts/electric_catalog_audit.mjs ./scripts/electric_catalog_audit.mjs
+COPY --from=builder /app/src/lib/car-title.ts /app/src/lib/electric-range.ts /app/src/lib/format.ts ./src/lib/
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
