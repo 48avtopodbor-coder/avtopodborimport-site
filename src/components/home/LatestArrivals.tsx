@@ -1,13 +1,11 @@
 import Link from "next/link";
+import { formatCarFullName, type CarTitleData } from "@/lib/car-title";
 import pool from "@/lib/db";
 import { firstDisplayValue } from "@/lib/format";
 import ArrivalPhoto from "./ArrivalPhoto";
 
-interface Car {
+interface Car extends CarTitleData {
   listing_id: string;
-  brand_ru: string;
-  model: string;
-  year: number | null;
   mileage_km: number | null;
   price_cny: number;
   fuel: string | null;
@@ -30,10 +28,12 @@ export default async function LatestArrivals() {
              AND NULLIF(trim(local_photo), '') IS NOT NULL
            ORDER BY lower(trim(brand_ru)), scraped_at DESC NULLS LAST, listing_id DESC
          )
-         SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
+         SELECT c.listing_id, c.brand_ru, c.model, c.year, c.brand_id, c.model_name, c.model_slug, c.trim,
+                b.name AS brand_name, b.slug AS brand_slug, b.logo_path, c.mileage_km, c.price_cny,
                 c.fuel, s.fuel AS spec_fuel, COALESCE(ct.city_ru, c.city) AS city_display,
                 c.local_photo
          FROM latest_by_brand c
+         LEFT JOIN brands b ON b.id = c.brand_id
          LEFT JOIN specs s ON s.spec_id = c.spec_id
          LEFT JOIN city_translations ct ON ct.city_cn = c.city
          WHERE c.is_active = 1 AND c.price_cny > 0
@@ -77,10 +77,7 @@ export default async function LatestArrivals() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 empty:before:col-span-full empty:before:font-body empty:before:text-sm empty:before:text-gray-400 empty:before:content-['Пока_нет_объявлений_с_доступными_фото.']">
             {cars.map((car) => {
               const fuel = firstDisplayValue(car.fuel, car.spec_fuel);
-              const model = car.model
-                ?.replace(/[一-鿿㐀-䶿]+/g, " ")
-                .replace(/\s+/g, " ")
-                .trim();
+              const name = formatCarFullName(car);
               const details = [
                 car.year,
                 car.mileage_km != null
@@ -93,12 +90,12 @@ export default async function LatestArrivals() {
                   key={car.listing_id}
                   href={`/car/${encodeURIComponent(car.listing_id)}`}
                   src={car.local_photo}
-                  alt={`${car.brand_ru} ${model || ""}`}
+                  alt={name}
                   fuel={fuel}
                 >
                   <div className="p-4">
                     <div className="font-heading font-bold text-sm text-white mb-1 [overflow-wrap:anywhere]">
-                      {car.brand_ru} {model}
+                      {name}
                     </div>
                     <div className="text-gray-400 font-body text-xs mb-3 [overflow-wrap:anywhere]">
                       {details.join(" · ")}

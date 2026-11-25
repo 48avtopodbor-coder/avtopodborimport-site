@@ -1,4 +1,5 @@
 import pool from "@/lib/db";
+import type { CarTitleData } from "./car-title";
 import { unstable_cache } from "next/cache";
 import { BODY_NAMES, type CatalogFilters } from "./catalog-filters";
 
@@ -16,11 +17,8 @@ export interface Facets {
   ranges: { year: [number, number]; price: [number, number]; mileage: [number, number] };
   priceAvailable: boolean;
 }
-export interface CatalogCar {
+export interface CatalogCar extends CarTitleData {
   listing_id: string;
-  brand_ru: string;
-  model: string;
-  year: number;
   mileage_km: number;
   price_cny: number;
   fuel: string | null;
@@ -129,7 +127,7 @@ const ORDERS = {
 // is ranked before LIMIT/OFFSET, so pagination is stable and does not repeat cars.
 export function catalogListQuery(f: CatalogFilters, limit: number, offset: number) {
   const where = catalogWhere(f);
-  const select = `c.listing_id,c.brand_ru,c.model,c.year,c.mileage_km,c.price_cny,c.fuel,s.fuel AS spec_fuel,COALESCE(c.gearbox,s.gearbox) AS gearbox,c.color,c.city,COALESCE(ct.city_ru,c.city) AS city_display,c.photos,c.images,c.local_photo`;
+  const select = `c.listing_id,c.brand_ru,c.model,c.year,c.brand_id,c.model_name,c.model_slug,c.trim,b.name AS brand_name,b.slug AS brand_slug,b.logo_path,c.mileage_km,c.price_cny,c.fuel,s.fuel AS spec_fuel,COALESCE(c.gearbox,s.gearbox) AS gearbox,c.color,c.city,COALESCE(ct.city_ru,c.city) AS city_display,c.photos,c.images,c.local_photo`;
   const pagination = `LIMIT $${where.values.length + 1} OFFSET $${where.values.length + 2}`;
   const matched = `${select} ${FROM} LEFT JOIN city_translations ct ON ct.city_cn=c.city WHERE ${where.sql}`;
   const sql =

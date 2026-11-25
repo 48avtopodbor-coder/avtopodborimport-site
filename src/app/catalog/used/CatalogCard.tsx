@@ -1,13 +1,7 @@
 import Link from "next/link";
+import { formatCarFullName } from "@/lib/car-title";
 import { firstDisplayValue } from "@/lib/format";
 import type { CatalogCar } from "@/lib/catalog-data";
-function cleanModel(model: string): string {
-  return model
-    .replace(/[一-鿿㐀-䶿]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function getFirstPhoto(car: CatalogCar): string | null {
   try {
     if (car.photos) {
@@ -30,6 +24,7 @@ function formatPrice(cny: number): string {
 }
 
 export default function CatalogCard({ car }: { car: CatalogCar }) {
+  const name = formatCarFullName(car);
   const remotePhoto = getFirstPhoto(car);
   const photoSrc =
     car.local_photo || (remotePhoto ? `/api/img?url=${encodeURIComponent(remotePhoto)}` : null);
@@ -41,11 +36,7 @@ export default function CatalogCard({ car }: { car: CatalogCar }) {
       {/* Фото */}
       <div className="relative h-44 bg-graphite-700">
         {photoSrc ? (
-          <img
-            src={photoSrc}
-            alt={`${car.brand_ru} ${car.model}`}
-            className="w-full h-full object-cover"
-          />
+          <img src={photoSrc} alt={name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-600">
             <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,8 +53,8 @@ export default function CatalogCard({ car }: { car: CatalogCar }) {
 
       {/* Инфо */}
       <div className="p-3">
-        <div className="font-heading font-bold text-white text-sm mb-1">
-          {car.brand_ru} {cleanModel(car.model)}
+        <div className="font-heading font-bold text-white text-sm mb-1 [overflow-wrap:anywhere]">
+          {name}
         </div>
         <div className="flex gap-3 text-xs text-gray-400 font-body mb-2">
           <span>{car.year}</span>
