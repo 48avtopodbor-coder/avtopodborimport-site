@@ -55,6 +55,8 @@ def _num(x):
 
 def color_ru(c):
     c = str(c or "").strip()
+    if c in ("其他", "其它", "其他颜色", "其它颜色"):
+        return "другой"
     return next((ru for cn, ru in COLORS if cn in c), c or None)
 
 
@@ -62,6 +64,8 @@ def fuel_ru(v):
     v = str(v or "")
     if not v:
         return None
+    if "氢" in v:
+        return "водород"
     if "增程" in v:
         return "гибрид EREV"
     if "插电" in v:

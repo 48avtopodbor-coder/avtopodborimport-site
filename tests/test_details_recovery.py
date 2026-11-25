@@ -27,6 +27,14 @@ class DetailsRecoveryTests(unittest.TestCase):
     def tearDown(self):
         self.db.close()
 
+    def test_hydrogen_and_other_color_have_russian_labels(self):
+        for source in ("氢燃料", "氢燃料电池"):
+            self.assertEqual(self.module.fuel_ru(source), "водород")
+        for source in ("其他", "其它", "其他颜色"):
+            self.assertEqual(self.module.color_ru(source), "другой")
+        self.assertEqual(self.module.color_ru("白色"), "белый")
+        self.assertEqual(self.module.fuel_ru("纯电动"), "электро")
+
     def test_registration_only_response_does_not_poison_shared_spec(self):
         self.api.car_params.return_value = [('牌照信息', [('首次上牌时间', '2022-03-01')])]
         self.module.spec_info('42', '100')
