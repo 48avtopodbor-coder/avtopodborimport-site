@@ -64,3 +64,8 @@ if [ -f /opt/avtopodborimport/translate_seller_descriptions.py ] && \
     /opt/avtopodborimport/translate_seller_descriptions.py --limit 2000 \
     >> /srv/che168/translation.log 2>&1 < /dev/null 9>&- &
 fi
+
+# Keep a read-only report of electric model names and rated range.
+if ! sh /opt/avtopodborimport/run_electric_catalog_audit.sh; then
+  echo "проверка электромобилей завершилась с ошибками; см. отчёт electric-catalog-audit.json"
+fi
