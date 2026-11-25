@@ -234,7 +234,7 @@ def handle(listing_id, spec_id) -> str:
             logger.warning("   {}: ответ {} {}", listing_id, rc, msg[:60])
         return "fail"
 
-    spec_id = spec_id or str(info.get("specid") or "") or None
+    spec_id = str(info.get("specid") or spec_id or "") or None
     got = spec_info(spec_id, listing_id, info.get("carname"))       # None — API характеристик не ответил
     s = got or {}
     photos = photo_urls(info.get("piclist"))

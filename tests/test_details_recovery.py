@@ -45,6 +45,13 @@ class DetailsRecoveryTests(unittest.TestCase):
         self.assertEqual(self.module.spec_info('42', '100')['power_hp'], 400)
         self.api.car_params.assert_not_called()
 
+    def test_current_api_spec_id_takes_priority_over_stale_listing_cache(self):
+        self.api.car_info = Mock(return_value=({"specid": 99, "carname": "海豚 2023款", "colorname": "白色"}, 0, ""))
+        with patch.object(self.module, "spec_info", return_value={"fuel": "электро"}) as get_spec, patch.object(self.module, "save") as save:
+            self.module.handle("100", "42")
+        get_spec.assert_called_once_with("99", "100", "海豚 2023款")
+        self.assertEqual(save.call_args.args[1]["spec_id"], "99")
+
     def test_ev_cache_without_range_is_not_reused(self):
         row = {"fuel": "электро", "drive": "полный", "power_hp": 400, "params_json": "[]"}
         self.assertFalse(self.module.reusable_spec_cache(row))
