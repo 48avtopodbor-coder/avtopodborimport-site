@@ -3,6 +3,7 @@ import Link from "next/link";
 import HeaderPhones from "@/components/layout/HeaderPhones";
 import { notFound } from "next/navigation";
 import { displayValue, firstDisplayValue } from "@/lib/format";
+import OriginalListingLink from "@/components/car/OriginalListingLink";
 import CarGallery from "@/components/car/CarGallery";
 import { electricRange } from "@/lib/electric-range";
 import { modelEquipment } from "@/lib/equipment";
@@ -13,6 +14,7 @@ import type { Metadata } from "next";
 
 interface Car extends CarTitleData {
   listing_id: string;
+  url: string | null;
   mileage_km: number;
   price_cny: number;
   fuel: string;
@@ -91,7 +93,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
 
   const [carResult, specsResult] = await Promise.all([
     pool.query(
-      `SELECT c.listing_id, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
+      `SELECT c.listing_id, c.url, c.brand_ru, c.model, c.year, c.mileage_km, c.price_cny,
               c.brand_id, c.model_name, c.model_slug, c.trim,
               b.name AS brand_name, b.slug AS brand_slug, b.logo_path,
               c.fuel, c.gearbox, c.color, c.city, c.engine_ml, c.tires, c.description,
@@ -259,6 +261,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
                   </div>
                 ))}
             </div>
+            <OriginalListingLink url={car.url} listingId={car.listing_id} />
           </div>
         </div>
 
