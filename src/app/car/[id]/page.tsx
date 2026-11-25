@@ -7,6 +7,7 @@ import OriginalListingLink from "@/components/car/OriginalListingLink";
 import CarGallery from "@/components/car/CarGallery";
 import { electricRange } from "@/lib/electric-range";
 import { modelEquipment } from "@/lib/equipment";
+import CarEquipment from "@/components/car/CarEquipment";
 import { sellerDictionaryRevision } from "@/lib/seller-description";
 import CarTitle from "@/components/car/CarTitle";
 import { formatCarFullName, type CarTitleData } from "@/lib/car-title";
@@ -333,32 +334,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
           </section>
         )}
 
-        {equipment.length > 0 && (
-          <section className="mt-10">
-            <h2 className="font-heading font-bold text-lg text-white mb-2">Комплектация</h2>
-            <p className="text-gray-400 font-body text-sm mb-4">
-              Данные модели. Фактическое оснащение автомобиля уточняйте при осмотре.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {equipment.map(({ title, items }) => (
-                <div key={title} className="bg-graphite-800 rounded-xl p-5 min-w-0">
-                  <h3 className="font-heading font-bold text-white text-sm mb-3">{title}</h3>
-                  <ul className="space-y-3">
-                    {items.map(({ label, status }) => (
-                      <li
-                        key={label}
-                        className="space-y-1 text-sm font-body [overflow-wrap:anywhere]"
-                      >
-                        <span className="block text-white">{label}</span>
-                        <span className="block text-gray-400">{status}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        <CarEquipment groups={equipment} />
 
         {/* Назад */}
         <div className="mt-8">

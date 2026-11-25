@@ -1,73 +1,101 @@
-type EquipmentItem = {
-  label: string;
-  status: "В стандартной комплектации" | "Дополнительно — наличие уточняется";
-};
-type EquipmentGroup = { title: string; items: EquipmentItem[] };
+import { equipmentLabels, equipmentSections, equipmentValues } from "./equipment-translations";
 
-const groups: { title: string; sections: string[]; names: Record<string, string> }[] = [
-  {
-    title: "Безопасность",
-    sections: ["被动安全", "主动安全"],
-    names: {
-      ABS防抱死: "Антиблокировочная система ABS",
-      "制动力分配(EBD/CBC等)": "Распределение тормозных усилий",
-      "刹车辅助(EBA/BAS/BA等)": "Помощь при экстренном торможении",
-      "牵引力控制(ASR/TCS/TRC等)": "Противобуксовочная система",
-      "车身稳定控制(ESC/ESP/DSC等)": "Система стабилизации",
-      ISOFIX儿童座椅接口: "Крепления детских кресел ISOFIX",
-      车道偏离预警系统: "Предупреждение о выезде из полосы",
-      "主动刹车/主动安全系统": "Автоматическое экстренное торможение",
-      疲劳驾驶提示: "Контроль усталости водителя",
-      前方碰撞预警: "Предупреждение о столкновении",
-      道路救援呼叫: "Вызов помощи на дороге",
-    },
-  },
-  {
-    title: "Комфорт и управление",
-    sections: ["驾驶操控", "驾驶功能", "外观/防盗", "天窗/玻璃", "空调/冰箱"],
-    names: {
-      发动机启停技术: "Система старт-стоп",
-      自动驻车: "Автоматическое удержание автомобиля",
-      上坡辅助: "Помощь при трогании на подъёме",
-      辅助泊车入位: "Помощь при парковке",
-      并线辅助: "Контроль слепых зон",
-      电动后备厢: "Электропривод багажника",
-      感应后备厢: "Бесконтактное открывание багажника",
-      电动后备厢位置记忆: "Память положения двери багажника",
-      无钥匙启动系统: "Запуск двигателя без ключа",
-      车窗一键升降功能: "Автоматический режим стеклоподъёмников",
-      车窗防夹手功能: "Защита от защемления стеклоподъёмников",
-      后雨刷: "Задний стеклоочиститель",
-      后排独立空调: "Отдельный климат-контроль заднего ряда",
-      后座出风口: "Воздуховоды для задних пассажиров",
-      温度分区控制: "Раздельное управление температурой",
-      "车内PM2.5过滤装置": "Фильтр мелких частиц PM2.5",
-    },
-  },
-  {
-    title: "Салон",
-    sections: ["方向盘/内后视镜", "座椅配置"],
-    names: {
-      多功能方向盘: "Многофункциональный руль",
-      方向盘换挡拨片: "Подрулевые переключатели передач",
-      方向盘加热: "Обогрев руля",
-      全液晶仪表盘: "Цифровая приборная панель",
-      HUD抬头数字显示: "Проекционный дисплей",
-      运动风格座椅: "Спортивные сиденья",
-      后排杯架: "Подстаканники для задних пассажиров",
-    },
-  },
-  {
-    title: "Мультимедиа",
-    sections: ["互联/智能化", "车内充电"],
-    names: {
-      "蓝牙/车载电话": "Bluetooth и громкая связь",
-      应用商店: "Магазин приложений",
-      车联网: "Подключение автомобиля к интернету",
-      "Wi-Fi热点": "Точка доступа Wi-Fi",
-    },
-  },
-];
+export type EquipmentStatus = "standard" | "optional" | "absent" | "unspecified";
+export type EquipmentValue = {
+  text: string;
+  status: EquipmentStatus;
+  translationPending: boolean;
+};
+export type EquipmentItem = {
+  label: string;
+  sourceLabel: string;
+  sourceValue: string;
+  values: EquipmentValue[];
+  translationPending: boolean;
+};
+export type EquipmentGroup = { title: string; sourceTitle: string; items: EquipmentItem[] };
+
+export const equipmentStatusLabels: Record<EquipmentStatus, string> = {
+  standard: "В стандартной комплектации",
+  optional: "Дополнительно — наличие уточняется",
+  absent: "Не предусмотрено для комплектации",
+  unspecified: "По данным модели",
+};
+
+// Registration can belong to another listing sharing the model spec. Never show it here.
+const specificationSections = new Set([
+  "牌照信息",
+  "基本参数",
+  "车身",
+  "发动机",
+  "电动机",
+  "电池/充电",
+  "变速箱",
+  "底盘转向",
+  "车轮制动",
+]);
+const chinese = /[\u3400-\u9fff]/;
+
+export function translateEquipmentValue(raw: string): {
+  text: string;
+  translationPending: boolean;
+} {
+  const value = raw.trim();
+  const known = Object.hasOwn(equipmentValues, value) ? equipmentValues[value] : undefined;
+  if (known) return { text: known, translationPending: false };
+  let text = value;
+  let match: RegExpMatchArray | null;
+  if ((match = value.match(/^支持(.+)$/))) {
+    text = `поддержка ${match[1]}`;
+  } else if ((match = value.match(/^([≥≤]?\d+(?:[.\-]\d+)?)英寸$/))) {
+    text = `${match[1]}″`;
+  } else if ((match = value.match(/^([≥≤]?\d+(?:-\d+)?)喇叭$/))) {
+    text = `динамиков: ${match[1]}`;
+  } else if ((match = value.match(/^(\d+)色$/))) {
+    text = `цветов: ${match[1]}`;
+  } else if ((match = value.match(/^(\d+)个$/))) {
+    text = `${match[1]} шт.`;
+  } else if ((match = value.match(/^(\d+(?:\.\d+)?)万$/))) {
+    text = `${Number(match[1]) / 100} Мп`;
+  } else if ((match = value.match(/^前排(\d+)个\/后排(\d+)个$/))) {
+    text = `спереди: ${match[1]}; сзади: ${match[2]}`;
+  } else if ((match = value.match(/^(前排|后排)(\d+)个$/))) {
+    text = `${match[1] === "前排" ? "спереди" : "сзади"}: ${match[2]}`;
+  } else if ((match = value.match(/^(高低调节|腰部支撑)\((\d+)向\)$/))) {
+    text = `${match[1] === "高低调节" ? "регулировка по высоте" : "поясничная поддержка"}: ${match[2]} направления`;
+  }
+  return { text, translationPending: chinese.test(text) };
+}
+
+function status(marker: string): EquipmentStatus {
+  return marker === "●" ? "standard" : marker === "○" ? "optional" : "absent";
+}
+
+function parseValues(raw: string): EquipmentValue[] {
+  const positions: Record<string, string> = {
+    前: "Спереди",
+    后: "Сзади",
+    主: "Водитель",
+    副: "Передний пассажир",
+  };
+  return raw
+    .split(/\r?\n/)
+    .filter((line) => line.trim())
+    .flatMap((line): EquipmentValue[] => {
+      const value = line.trim();
+      const paired = value.match(/^([前后主副])\s*([●○-])\s*\/\s*([前后主副])\s*([●○-])$/);
+      if (paired) {
+        return [
+          { text: positions[paired[1]], status: status(paired[2]), translationPending: false },
+          { text: positions[paired[3]], status: status(paired[4]), translationPending: false },
+        ];
+      }
+      if (/^[-—–]$/.test(value)) return [{ text: "", status: "absent", translationPending: false }];
+      const marked = value.match(/^([●○])\s*(.*)$/);
+      const translated = translateEquipmentValue(marked ? marked[2] : value);
+      return [{ ...translated, status: marked ? status(marked[1]) : "unspecified" }];
+    });
+}
 
 export function modelEquipment(raw: unknown): EquipmentGroup[] {
   let data: unknown = raw;
@@ -79,33 +107,46 @@ export function modelEquipment(raw: unknown): EquipmentGroup[] {
     }
   }
   if (!Array.isArray(data)) return [];
-
-  return groups
-    .map(({ title, sections, names }) => {
-      const items: EquipmentItem[] = [];
-      for (const section of data) {
-        if (
-          !Array.isArray(section) ||
-          !sections.includes(section[0]) ||
-          !Array.isArray(section[1])
-        ) {
-          continue;
-        }
-        for (const item of section[1]) {
-          if (!Array.isArray(item) || typeof item[0] !== "string" || typeof item[1] !== "string")
-            continue;
-          const label = names[item[0]];
-          const value = item[1].trim();
-          if (label && (value === "●" || value === "○")) {
-            items.push({
-              label,
-              status:
-                value === "●" ? "В стандартной комплектации" : "Дополнительно — наличие уточняется",
-            });
-          }
-        }
-      }
-      return { title, items };
-    })
-    .filter(({ items }) => items.length > 0);
+  const groups: EquipmentGroup[] = [];
+  const seen = new Set<string>();
+  for (const section of data) {
+    if (!Array.isArray(section) || typeof section[0] !== "string" || !Array.isArray(section[1]))
+      continue;
+    const [sourceTitle, entries] = section;
+    if (specificationSections.has(sourceTitle)) continue;
+    const items: EquipmentItem[] = [];
+    for (const entry of entries) {
+      if (
+        !Array.isArray(entry) ||
+        typeof entry[0] !== "string" ||
+        (typeof entry[1] !== "string" && typeof entry[1] !== "number")
+      )
+        continue;
+      const sourceLabel = entry[0].trim();
+      const sourceValue = String(entry[1]).trim();
+      if (!sourceLabel || !sourceValue) continue;
+      const key = JSON.stringify([sourceLabel, sourceValue]);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const knownLabel = Object.hasOwn(equipmentLabels, sourceLabel);
+      const label = knownLabel ? equipmentLabels[sourceLabel] : sourceLabel;
+      const values = parseValues(sourceValue);
+      items.push({
+        label,
+        sourceLabel,
+        sourceValue,
+        values,
+        translationPending: !knownLabel || values.some((v) => v.translationPending),
+      });
+    }
+    if (items.length)
+      groups.push({
+        title: Object.hasOwn(equipmentSections, sourceTitle)
+          ? equipmentSections[sourceTitle]
+          : sourceTitle,
+        sourceTitle,
+        items,
+      });
+  }
+  return groups;
 }
