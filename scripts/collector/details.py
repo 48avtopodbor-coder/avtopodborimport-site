@@ -242,6 +242,8 @@ def handle(listing_id, spec_id) -> str:
     keep = {k: (v[:MAX_TEXT] if isinstance(v, str) else v) for k, v in info.items()
             if k not in SKIP_INFO and isinstance(v, (str, int, float, bool)) and v not in ("", None)}
     fields = {
+        "model": str(info.get("carname") or "").strip() or None,
+        "series_name": str(info.get("seriesname") or "").strip() or None,
         "color": color_ru(info.get("colorname")),
         "gearbox": s.get("gearbox") or gearbox_ru(info.get("gearbox")),
         "fuel": s.get("fuel"),

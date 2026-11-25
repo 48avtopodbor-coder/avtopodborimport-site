@@ -133,3 +133,22 @@ test("stale specification titles are reviewable, without changing source data", 
   assert.equal(r.issues[0].code, "spec_title_mismatch");
   assert.equal(original.model, "ID.4 CROZZ 2024款 PURE+");
 });
+
+test("live listing details reveal stale title, specification ID and nominal range", () => {
+  const r = auditElectricRows(
+    [
+      {
+        ...car,
+        spec_id: "old",
+        details_json: JSON.stringify({ carname: "海豚 2023款", specid: "new", lifemileage: 510 }),
+      },
+    ],
+    helpers,
+  );
+  for (const code of [
+    "listing_title_outdated",
+    "source_spec_id_mismatch",
+    "listing_range_mismatch",
+  ])
+    assert.ok(r.issues.some((issue) => issue.code === code));
+});

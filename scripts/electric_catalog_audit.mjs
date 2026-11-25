@@ -45,6 +45,18 @@ export function auditElectricRows(rows, helpers) {
     const range = helpers.electricRange(car.params_json, fuel);
     if (!range) issue("missing_range", "Нет однозначного запаса хода, который можно показать");
     else withRange++;
+    let source = {};
+    try {
+      const parsed =
+        typeof car.details_json === "string" ? JSON.parse(car.details_json) : car.details_json;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) source = parsed;
+    } catch {
+      issue("invalid_listing_details", "Некорректный JSON карточки источника");
+    }
+    if (source.carname && normalizeTitle(source.carname) !== normalizeTitle(car.model))
+      issue("listing_title_outdated", { listing: car.model, source: source.carname }, "warning");
+    if (source.specid && car.spec_id && String(source.specid) !== String(car.spec_id))
+      issue("source_spec_id_mismatch", { listing: car.spec_id, source: source.specid });
     const entries = specEntries(car.params_json);
     const sourceNames = [
       ...new Set(entries.filter(([key]) => key === "车型名称").map(([, value]) => String(value))),
@@ -80,6 +92,13 @@ export function auditElectricRows(rows, helpers) {
       if (cycle === "unspecified")
         issue("unspecified_cycle", "В источнике не указан цикл измерения", "warning");
     }
+    const sourceRange = Number(source.lifemileage);
+    if (
+      Number.isFinite(sourceRange) &&
+      sourceRange > 0 &&
+      ![...values.values()].some((set) => set.has(sourceRange))
+    )
+      issue("listing_range_mismatch", { source: sourceRange, displayed: range }, "warning");
     const titleKm = [
       ...String(car.model ?? "").matchAll(/(?<![\d.])(\d+(?:\.\d+)?)\s*km\b/giu),
     ].map((m) => Number(m[1]));
@@ -121,7 +140,7 @@ async function main() {
       await client.query("SET LOCAL statement_timeout = '30s'");
       rows = (
         await client.query(
-          `SELECT c.listing_id,c.brand_ru,c.model,c.year,c.brand_id,c.model_name,c.model_slug,c.trim,b.name AS brand_name,b.slug AS brand_slug,b.logo_path,c.fuel AS car_fuel,s.fuel AS spec_fuel,s.params_json FROM cars c LEFT JOIN brands b ON b.id=c.brand_id LEFT JOIN specs s ON s.spec_id=c.spec_id WHERE c.is_active=1 AND c.price_cny>0 AND (c.fuel='электро' OR s.fuel='электро' OR s.params_json LIKE '%纯电动%' OR c.details_json LIKE '%纯电动%') ORDER BY c.brand_ru,c.model_name,c.listing_id`,
+          `SELECT c.listing_id,c.brand_ru,c.model,c.year,c.brand_id,c.model_name,c.model_slug,c.trim,c.spec_id,c.details_json,b.name AS brand_name,b.slug AS brand_slug,b.logo_path,c.fuel AS car_fuel,s.fuel AS spec_fuel,s.params_json FROM cars c LEFT JOIN brands b ON b.id=c.brand_id LEFT JOIN specs s ON s.spec_id=c.spec_id WHERE c.is_active=1 AND c.price_cny>0 AND (c.fuel='электро' OR s.fuel='электро' OR s.params_json LIKE '%纯电动%' OR c.details_json LIKE '%纯电动%') ORDER BY c.brand_ru,c.model_name,c.listing_id`,
         )
       ).rows;
       await client.query("COMMIT");
