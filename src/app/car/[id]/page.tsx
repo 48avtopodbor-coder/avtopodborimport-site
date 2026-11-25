@@ -4,6 +4,7 @@ import HeaderPhones from "@/components/layout/HeaderPhones";
 import { notFound } from "next/navigation";
 import { displayValue, firstDisplayValue } from "@/lib/format";
 import CarGallery from "@/components/car/CarGallery";
+import { electricRange } from "@/lib/electric-range";
 import { modelEquipment } from "@/lib/equipment";
 import { sellerDictionaryRevision } from "@/lib/seller-description";
 import CarTitle from "@/components/car/CarTitle";
@@ -61,14 +62,6 @@ interface Spec {
   params_text: string | null;
   params_json: unknown;
   tires: string | null;
-}
-
-// Убирает китайские иероглифы, оставляет латиницу, цифры, знаки
-function cleanModel(model: string): string {
-  return model
-    .replace(/[一-鿿㐀-䶿]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function getPhotos(car: Car): string[] {
@@ -131,6 +124,8 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
   const car: Car = carResult.rows[0];
   const spec: Spec | null = specsResult.rows[0] ?? null;
   const equipment = modelEquipment(spec?.params_json);
+  const name = formatCarFullName(car);
+  const range = electricRange(spec?.params_json, firstDisplayValue(car.fuel, spec?.fuel));
   const sourceDescription = car.description?.trim();
   const sellerDescription = sourceDescription
     ? {
@@ -191,18 +186,12 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
             Авто с пробегом
           </Link>
           <span>/</span>
-          <span className="text-gray-300">
-            {car.brand_ru} {cleanModel(car.model)}
-          </span>
+          <span className="text-gray-300">{name}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Фото */}
-          <CarGallery
-            key={car.listing_id}
-            photos={photoSrcs}
-            alt={`${car.brand_ru} ${cleanModel(car.model)}`}
-          />
+          <CarGallery key={car.listing_id} photos={photoSrcs} alt={name} />
 
           {/* Основная информация */}
           <div>
@@ -274,7 +263,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
         </div>
 
         {/* Технические характеристики */}
-        {(spec || engineMl || tires) && (
+        {(spec || engineMl || tires || range) && (
           <div className="mt-10">
             <h2 className="font-heading font-bold text-lg text-white mb-4">
               Технические характеристики
@@ -287,6 +276,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
                     { label: "Привод", value: displayValue(spec?.drive) },
                     { label: "КПП", value: displayValue(spec?.gearbox) },
                     { label: "Мощность", value: spec?.power_hp ? `${spec.power_hp} л.с.` : null },
+                    { label: "Запас хода", value: range },
                     {
                       label: "Объём двигателя",
                       value: engineMl ? `${engineMl} мл` : null,
