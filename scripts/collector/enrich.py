@@ -13,6 +13,7 @@ import urllib.request
 
 from loguru import logger
 from database import init_db, cars_to_enrich, update_details, get_conn
+from registration_age import customs_registration_bounds, registration_month
 from sold_status import FailedResponses, is_sold_response
 
 API = "https://apipcmusc.che168.com/v1/car/getcarinfo?_appid=2sc.pc&infoid="
@@ -118,14 +119,18 @@ def enrich_pending(limit=None) -> dict:
 
 
 def recheck_active(hours: int = RECHECK_HOURS, limit=None) -> dict:
-    sql = ("SELECT listing_id FROM cars WHERE is_active = 1 AND enriched_at IS NOT NULL "
+    oldest, _ = customs_registration_bounds()
+    sql = ("SELECT listing_id, first_reg_date, year FROM cars WHERE is_active = 1 AND enriched_at IS NOT NULL "
            "AND updated_at < datetime('now', ?) ORDER BY updated_at")
-    params = [f"-{hours} hours"]
-    if limit:
-        sql += " LIMIT ?"
-        params.append(limit)
+    ids = []
     with get_conn() as conn:
-        ids = [r[0] for r in conn.execute(sql, params)]
+        for listing_id, first_date, year in conn.execute(sql, (f"-{hours} hours",)):
+            month = registration_month(first_date, year)
+            if month is not None and month <= oldest:
+                continue
+            ids.append(listing_id)
+            if len(ids) == limit:
+                break
     return process(ids, "Перепроверка продающихся машин", recheck_from)
 
 

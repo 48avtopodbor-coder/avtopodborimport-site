@@ -22,11 +22,42 @@ function load(path, imports = {}) {
   return loadedModule.exports;
 }
 const filters = load("../src/lib/catalog-filters.ts");
+const age = load("../src/lib/catalog-age.ts");
 const { catalogNoScriptForm } = load("../src/lib/catalog-noscript.ts");
 const data = load("../src/lib/catalog-data.ts", {
   "./catalog-filters": filters,
+  "./catalog-age": age,
   "@/lib/db": {},
   "next/cache": { unstable_cache: (f) => f },
+});
+test("customs age bounds apply to listing, counts and every catalog facet", async () => {
+  assert.equal(
+    age.CATALOG_AGE_SQL,
+    "(c.reg_month > (current_date + 45 - interval '5 years') AND c.reg_month <= (current_date + 45 - interval '3 years'))",
+  );
+  const queries = [];
+  const db = {
+    async query(sql) {
+      queries.push(sql);
+      if (sql.includes(" AS total")) return { rows: [{ total: 0 }] };
+      if (sql.includes(" AS y1")) return { rows: [{ y1: null, y2: null }] };
+      if (sql.includes(" AS available")) return { rows: [{ available: false }] };
+      return { rows: [] };
+    },
+  };
+  const { getCatalogFacets, getCatalogList } = load("../src/lib/catalog-data.ts", {
+    "./catalog-filters": filters,
+    "./catalog-age": age,
+    "@/lib/db": { default: db },
+    "next/cache": { unstable_cache: (f) => f },
+  });
+  const f = filters.parseFilters({ brand: "mazda", model: "cx-30", body: "suv", yearFrom: "2022" });
+  const facets = await getCatalogFacets(f);
+  assert.deepEqual(Array.from(facets.ranges.year), [null, null]);
+  await getCatalogList(f);
+  await getCatalogList({ ...f, sort: "newest" });
+  assert.equal(queries.length, 10);
+  for (const query of queries) assert.ok(query.includes(age.CATALOG_VISIBLE_SQL), query);
 });
 test("unsafe and malformed URL values do not become SQL or negative pagination", () => {
   const f = filters.parseFilters({

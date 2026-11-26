@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatCarFullName, type CarTitleData } from "@/lib/car-title";
 import pool from "@/lib/db";
+import { CATALOG_VISIBLE_SQL } from "@/lib/catalog-age";
 import { firstDisplayValue } from "@/lib/format";
 import ArrivalPhoto from "./ArrivalPhoto";
 
@@ -22,8 +23,8 @@ export default async function LatestArrivals() {
       pool.query<Car>(
         `WITH latest_by_brand AS (
            SELECT DISTINCT ON (lower(trim(brand_ru))) *
-           FROM cars
-           WHERE is_active = 1 AND price_cny > 0
+           FROM cars c
+           WHERE ${CATALOG_VISIBLE_SQL}
              AND NULLIF(trim(brand_ru), '') IS NOT NULL
              AND NULLIF(trim(local_photo), '') IS NOT NULL
            ORDER BY lower(trim(brand_ru)), scraped_at DESC NULLS LAST, listing_id DESC
@@ -36,13 +37,10 @@ export default async function LatestArrivals() {
          LEFT JOIN brands b ON b.id = c.brand_id
          LEFT JOIN specs s ON s.spec_id = c.spec_id
          LEFT JOIN city_translations ct ON ct.city_cn = c.city
-         WHERE c.is_active = 1 AND c.price_cny > 0
          ORDER BY c.scraped_at DESC NULLS LAST, c.listing_id DESC
          LIMIT 4`,
       ),
-      pool.query<{ count: string }>(
-        "SELECT COUNT(*) FROM cars WHERE is_active = 1 AND price_cny > 0",
-      ),
+      pool.query<{ count: string }>(`SELECT COUNT(*) FROM cars c WHERE ${CATALOG_VISIBLE_SQL}`),
     ]);
     cars = carsResult.rows;
     total = Number(countResult.rows[0].count);

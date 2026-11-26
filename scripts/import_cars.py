@@ -28,6 +28,7 @@ from collections import Counter
 # The production cron runs this file directly, while tests load it by path.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from car_titles import extract_title, normalize_brand
+from collector.registration_age import registration_month
 
 SQLITE_PATH = os.environ.get("SQLITE_PATH", "/srv/che168/cars.db")
 PG_DSN = os.environ.get(
@@ -51,7 +52,7 @@ CAR_COLS = [
     "details_json", "drive", "params_text", "power_hp", "engine_ml", "photos", "photo_count",
     "tires", "scraped_at", "updated_at",
 ]
-CAR_DERIVED_COLS = ["brand_id", "model_name", "model_slug", "trim"]
+CAR_DERIVED_COLS = ["reg_month", "brand_id", "model_name", "model_slug", "trim"]
 CAR_DST_COLS = CAR_COLS + CAR_DERIVED_COLS
 # Эти поля всегда берём из сборщика как есть: продана ли машина и почём.
 CAR_EXACT = {"is_active", "price_cny", "price_wan", "updated_at"}
@@ -70,7 +71,11 @@ def car_upsert_sql():
     for c in CAR_DST_COLS:
         if c in CAR_KEEP:
             continue
-        if c in CAR_EXACT or c in CAR_DERIVED_COLS:
+        if c == "reg_month":
+            sets.append("reg_month = car_registration_month("
+                        "COALESCE(EXCLUDED.first_reg_date, cars.first_reg_date), "
+                        "COALESCE(EXCLUDED.year, cars.year))")
+        elif c in CAR_EXACT or c in CAR_DERIVED_COLS:
             sets.append(f"{c} = EXCLUDED.{c}")
         else:
             # Не затираем уже собранные данные пустым значением
@@ -156,7 +161,7 @@ def normalize_saved_photo_links(dry_run):
 def enrich_car(row, brands, models, unknown):
     data = dict(zip(CAR_COLS, row))
     data["images"] = normalize_photo_links(data["images"])
-    imported = tuple(data.values())
+    imported = tuple(data.values()) + (registration_month(data["first_reg_date"], data["year"]),)
     raw_brand = (data["brand_ru"] or data["brand_cn"] or "").strip()
     found = brands.get(normalize_brand(raw_brand))
     if not found and data["brand_cn"]:

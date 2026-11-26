@@ -1,7 +1,8 @@
 """Параметры каталога для локального config.py."""
 
-import datetime
 import os
+
+from registration_age import customs_years
 
 TARGET_BRANDS = [{'name_cn': '哈弗', 'name_ru': 'Haval', 'slug': 'hafu'},
  {'name_cn': '吉利汽车', 'name_ru': 'Geely', 'slug': 'jiliqiche'},
@@ -46,7 +47,5 @@ CHE168_COOLDOWN_MIN = 90
 
 API_INTERVAL = (1.0, 2.0)
 
-# Возраст 3–5 лет по году, как в действующем сборщике.
-MIN_YEAR = datetime.date.today().year - 5
-MAX_YEAR = datetime.date.today().year - 3
+MIN_YEAR, MAX_YEAR = customs_years()
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "cars.db")
