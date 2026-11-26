@@ -14,7 +14,14 @@ from urllib.request import Request, urlopen
 ALERT_ENV = Path("/etc/avtopodbor-alerts.env")
 ALERT_STATE = Path("/srv/che168/import-alerts.state")
 IMPORT_COMMAND = "sudo -u postgres python3 /opt/avtopodborimport/import_cars.py"
-GUARD_COUNTS = re.compile(r"К удалению (\d+), активных машин на сайте \d+, порог (\d+)")
+SOLD_GUARD = "ПРЕДОХРАНИТЕЛЬ:"
+AGED_GUARD = "ПРЕДОХРАНИТЕЛЬ ВОЗРАСТА:"
+GUARD_COUNTS = r"К удалению (\d+), активных машин на сайте \d+, порог (\d+)"
+SOLD_COUNTS = re.compile(rf"^{SOLD_GUARD} удаление пропущено\. {GUARD_COUNTS}", re.MULTILINE)
+AGED_COUNTS = re.compile(
+    rf"^{AGED_GUARD} удаление пропущено\. {GUARD_COUNTS}, граница (\d{{4}}-\d{{2}}-\d{{2}})",
+    re.MULTILINE,
+)
 
 
 def alert_credentials(path):
@@ -51,13 +58,20 @@ def claim_snapshot(snapshot, state_path):
 def send_alert(snapshot, status, import_log, env_path=ALERT_ENV, state_path=ALERT_STATE):
     if not claim_snapshot(snapshot, state_path):
         return
-    counts = GUARD_COUNTS.search(import_log)
     if status == 3:
-        detail = f"Кандидатов на удаление {counts[1]}, порог {counts[2]}." if counts else (
-            "Число кандидатов и порог смотрите в журнале импорта."
-        )
-        message = f"AVTOPODBOR IMPORT: предохранитель пропустил удаление снятых машин. {detail}\n"
-        message += f"После ручной проверки: {IMPORT_COMMAND} --allow-mass-delete"
+        messages = []
+        if AGED_GUARD in import_log:
+            age = AGED_COUNTS.search(import_log)
+            detail = (f"Кандидатов {age[1]}, порог {age[2]}, граница {age[3]}." if age else
+                      "Число кандидатов, порог и граница указаны в первом запуске импорта.")
+            messages.append(f"Предохранитель пропустил удаление по возрасту. {detail}")
+        if SOLD_GUARD in import_log or not messages:
+            sold = SOLD_COUNTS.search(import_log)
+            detail = (f"Кандидатов на удаление {sold[1]}, порог {sold[2]}." if sold else
+                      "Число кандидатов и порог смотрите в журнале импорта.")
+            messages.append(f"Предохранитель пропустил удаление снятых машин. {detail}")
+        messages.append(f"После ручной проверки: {IMPORT_COMMAND} --allow-mass-delete")
+        message = "AVTOPODBOR IMPORT:\n" + "\n".join(messages)
     else:
         message = (f"AVTOPODBOR IMPORT: импорт завершился с кодом {status}. "
                    f"Проверка снимка: {IMPORT_COMMAND} --dry-run")

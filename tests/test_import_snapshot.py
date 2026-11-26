@@ -11,7 +11,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 
 
 spec = importlib.util.spec_from_file_location(
@@ -139,12 +139,22 @@ class SnapshotTests(unittest.TestCase):
             pg.cursor.return_value.__enter__.return_value.fetchone.return_value = (40, 40)
             psycopg2 = SimpleNamespace(connect=Mock(return_value=pg))
             remove = Mock(side_effect=[None, 10])
-            age_remove = Mock(return_value=7)
+            age_report = ("ПРЕДОХРАНИТЕЛЬ ВОЗРАСТА: удаление пропущено. К удалению 7, "
+                          "активных машин на сайте 40, порог 4, граница 2022-01-01 (настройка 10%).")
+
+            def remove_aged(cur, ids, *, allow_mass_delete, report, **kwargs):
+                if allow_mass_delete:
+                    return 7
+                report(age_report)
+                return None
+
+            age_remove = Mock(side_effect=remove_aged)
+            count_active = Mock(return_value=40)
             refresh = Mock()
             with (
                 patch.dict(sys.modules, {
                     "psycopg2": psycopg2,
-                    "sold_cars": SimpleNamespace(remove_confirmed=remove, remove_aged_out=age_remove),
+                    "sold_cars": SimpleNamespace(count_active=count_active, remove_confirmed=remove, remove_aged_out=age_remove),
                     "refresh_catalog_queue": SimpleNamespace(main=refresh),
                 }),
                 patch.object(import_cars, "STATE_PATH", str(state)),
@@ -157,20 +167,27 @@ class SnapshotTests(unittest.TestCase):
             ):
                 with patch.object(sys, "argv", ["import_cars.py"]):
                     self.assertEqual(import_cars.main(), 3)
-                    self.assertEqual(state.read_text(), "snapshot\nsold-delete-blocked\n")
+                    self.assertEqual(state.read_text(), f"snapshot\nsold-delete-blocked\naged-delete-blocked\n{age_report}\n")
                     pg.__exit__.assert_called_once_with(None, None, None)
                     self.assertEqual(copy.call_count, 2)
                     self.assertEqual(copy.call_args.kwargs["excluded_ids"], {"old", "site-old"})
-                    age_remove.assert_called_once_with(pg.cursor.return_value.__enter__.return_value, {"old", "site-old"})
+                    age_remove.assert_called_once_with(
+                        pg.cursor.return_value.__enter__.return_value, {"old", "site-old"},
+                        oldest=date(2022, 1, 1), allow_mass_delete=False, active_count=40, report=ANY,
+                    )
                     self.assertEqual(remove.call_args.kwargs["aged_out_ids"], {"old", "site-old"})
                     refresh.assert_called_once()
-                    self.assertEqual(import_cars.main(), 3)
+                    repeat_log = io.StringIO()
+                    with redirect_stdout(repeat_log):
+                        self.assertEqual(import_cars.main(), 3)
+                    self.assertIn(age_report, repeat_log.getvalue())
                     self.assertEqual(copy.call_count, 2)
                     self.assertEqual(remove.call_count, 1)
                 with patch.object(sys, "argv", ["import_cars.py", "--allow-mass-delete"]):
                     self.assertEqual(import_cars.main(), 0)
                 self.assertEqual(state.read_text(), "snapshot\n")
                 self.assertTrue(remove.call_args.kwargs["allow_mass_delete"])
+                self.assertTrue(age_remove.call_args.kwargs["allow_mass_delete"])
 
 
 if __name__ == "__main__":

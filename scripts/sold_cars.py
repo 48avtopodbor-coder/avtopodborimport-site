@@ -24,7 +24,23 @@ def cache_keys(*values):
     return keys
 
 
-def remove_confirmed(sq, cur, *, allow_mass_delete=False, aged_out_ids=()):
+def count_active(cur):
+    cur.execute("SELECT count(*) FROM cars WHERE is_active = 1")
+    return cur.fetchone()[0]
+
+
+def delete_limit(active, setting, default, minimum=0):
+    error_message = f"{setting} должен быть числом от 0 до 100"
+    try:
+        percent = Decimal(os.environ.get(setting, default))
+    except InvalidOperation as error:
+        raise ValueError(error_message) from error
+    if not percent.is_finite() or not 0 <= percent <= 100:
+        raise ValueError(error_message)
+    return max(minimum, int(active * percent / 100)), percent
+
+
+def remove_confirmed(sq, cur, *, allow_mass_delete=False, aged_out_ids=(), active_count=None):
     """Return the number deleted, or None if the safeguard blocked deletion."""
     from psycopg2.extras import execute_values
     ids = [str(row[0]) for row in sq.execute("SELECT listing_id FROM cars WHERE is_active=0")]
@@ -41,15 +57,8 @@ def remove_confirmed(sq, cur, *, allow_mass_delete=False, aged_out_ids=()):
     if not matching:
         return 0
     if not allow_mass_delete:
-        try:
-            percent = Decimal(os.environ.get("SOLD_DELETE_MAX_PERCENT", "5"))
-        except InvalidOperation as error:
-            raise ValueError("SOLD_DELETE_MAX_PERCENT должен быть числом от 0 до 100") from error
-        if not percent.is_finite() or not 0 <= percent <= 100:
-            raise ValueError("SOLD_DELETE_MAX_PERCENT должен быть числом от 0 до 100")
-        cur.execute("SELECT count(*) FROM cars WHERE is_active = 1")
-        active = cur.fetchone()[0]
-        limit = max(SOLD_DELETE_MIN_LIMIT, int(active * percent / 100))
+        active = count_active(cur) if active_count is None else active_count
+        limit, percent = delete_limit(active, "SOLD_DELETE_MAX_PERCENT", "5", SOLD_DELETE_MIN_LIMIT)
         if len(matching) > limit:
             print(f"ПРЕДОХРАНИТЕЛЬ: удаление пропущено. К удалению {len(matching)}, активных машин "
                   f"на сайте {active}, порог {limit} (минимум {SOLD_DELETE_MIN_LIMIT}, "
@@ -58,12 +67,22 @@ def remove_confirmed(sq, cur, *, allow_mass_delete=False, aged_out_ids=()):
     return queue_and_delete(cur, matching)
 
 
-def remove_aged_out(cur, ids):
+def remove_aged_out(cur, ids, *, oldest, allow_mass_delete=False, active_count=None, report=print):
+    """Return the number removed, or None if the age safeguard blocked deletion."""
     if not ids:
         return 0
     cur.execute("""SELECT listing_id,photos,images FROM cars
         WHERE listing_id::text = ANY(%s::text[]) FOR UPDATE""", (list(ids),))
-    return queue_and_delete(cur, cur.fetchall())
+    matching = cur.fetchall()
+    if matching and not allow_mass_delete:
+        active = count_active(cur) if active_count is None else active_count
+        limit, percent = delete_limit(active, "AGED_DELETE_MAX_PERCENT", "10")
+        if len(matching) > limit:
+            report(f"ПРЕДОХРАНИТЕЛЬ ВОЗРАСТА: удаление пропущено. К удалению {len(matching)}, "
+                   f"активных машин на сайте {active}, порог {limit}, граница {oldest} "
+                   f"(настройка {percent}%).")
+            return None
+    return queue_and_delete(cur, matching)
 
 
 def queue_and_delete(cur, matching):
