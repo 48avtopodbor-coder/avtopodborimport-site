@@ -84,7 +84,7 @@ export default function HeroSearch({
             className={`grid grid-cols-1 gap-2 rounded-2xl bg-graphite-800 p-2 ${
               priceAvailable
                 ? "sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,0.85fr)_auto]"
-                : "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+                : "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_auto]"
             }`}
           >
             <select name="brand" aria-label="Марка" className={`${controlClass} cursor-pointer`}>

@@ -45,9 +45,9 @@ export default function HowPriceWorks() {
           </h2>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch gap-3 max-w-4xl mx-auto">
+        <div className="flex flex-col md:flex-row items-stretch gap-3 max-w-4xl mx-auto">
           {steps.map((step, i) => (
-            <div key={step.label} className="flex sm:flex-col items-center gap-3 flex-1">
+            <div key={step.label} className="flex md:flex-col items-center gap-3 flex-1">
               {/* Карточка */}
               <div
                 className={`w-full rounded-xl p-4 border transition-colors ${
@@ -70,7 +70,7 @@ export default function HowPriceWorks() {
 
               {/* Стрелка между шагами */}
               {i < steps.length - 1 && (
-                <div className="text-gray-600 text-xl sm:rotate-90 flex-shrink-0">+</div>
+                <div className="text-gray-600 text-xl md:rotate-90 flex-shrink-0">+</div>
               )}
             </div>
           ))}
