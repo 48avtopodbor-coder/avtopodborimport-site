@@ -90,6 +90,14 @@ test("unsafe and malformed URL values do not become SQL or negative pagination",
   assert.equal(f.mileageTo, undefined);
   assert.equal(f.bodies.join(","), "suv");
 });
+test("a positive out-of-range page survives parsing for the HTTP 404 check", () => {
+  assert.equal(filters.parseFilters({ page: "99999" }).page, 99999);
+  assert.equal(
+    filters.parseFilters({ page: "100000000000000000000000000" }).page,
+    Number.MAX_SAFE_INTEGER,
+  );
+  assert.equal(filters.parseFilters({ page: "0" }).page, 1);
+});
 test("multi-model URLs and repeated no-JS fields share one state", () => {
   const f = filters.parseFilters({
     brand: "Mercedes-Benz",

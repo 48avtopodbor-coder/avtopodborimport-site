@@ -47,16 +47,21 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const result = await pool.query<CarTitleData>(
+  const result = await pool.query<CarTitleData & Pick<Car, "outside_customs_age">>(
     `SELECT c.brand_ru, c.model, c.year, c.brand_id, c.model_name, c.model_slug, c.trim,
-            b.name AS brand_name, b.slug AS brand_slug, b.logo_path
+            b.name AS brand_name, b.slug AS brand_slug, b.logo_path,
+            NOT ${CATALOG_AGE_SQL} AS outside_customs_age
      FROM cars c LEFT JOIN brands b ON b.id = c.brand_id
      WHERE c.listing_id = $1 AND c.is_active = 1`,
     [id],
   );
   if (!result.rows[0]) return {};
   const title = formatCarFullName(result.rows[0]);
-  return { title, openGraph: { title } };
+  return {
+    title,
+    openGraph: { title },
+    robots: result.rows[0].outside_customs_age ? { index: false, follow: true } : undefined,
+  };
 }
 
 interface Spec {
