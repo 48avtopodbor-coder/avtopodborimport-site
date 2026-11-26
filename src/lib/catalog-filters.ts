@@ -9,6 +9,8 @@ export const BODY_NAMES: Record<string, string> = {
   pickup: "Пикап",
   van: "Фургон / микроавтобус",
 };
+export const MAX_PRICE_RUB = 10_000_000_000;
+
 export const SORT_NAMES = {
   diverse: "Разные марки и модели",
   newest: "Сначала новые",
@@ -60,8 +62,8 @@ export function parseFilters(input: QueryInput): CatalogFilters {
     bodies: list("body").filter((v) => Object.hasOwn(BODY_NAMES, v)),
     yearFrom: number("yearFrom", 1900, new Date().getFullYear() + 1),
     yearTo: number("yearTo", 1900, new Date().getFullYear() + 1),
-    priceFrom: number("priceFrom", 0, 10000000000),
-    priceTo: number("priceTo", 0, 10000000000),
+    priceFrom: number("priceFrom", 0, MAX_PRICE_RUB),
+    priceTo: number("priceTo", 0, MAX_PRICE_RUB),
     mileageFrom: number("mileageFrom", 0, 3000000),
     mileageTo: number("mileageTo", 0, 3000000),
     sort,

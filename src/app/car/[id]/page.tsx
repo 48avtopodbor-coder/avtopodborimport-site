@@ -2,7 +2,7 @@ import pool from "@/lib/db";
 import Link from "next/link";
 import HeaderPhones from "@/components/layout/HeaderPhones";
 import { notFound } from "next/navigation";
-import { displayValue, firstDisplayValue } from "@/lib/format";
+import { displayValue, firstDisplayValue, formatCnyPrice } from "@/lib/format";
 import OriginalListingLink from "@/components/car/OriginalListingLink";
 import CarGallery from "@/components/car/CarGallery";
 import { electricRange } from "@/lib/electric-range";
@@ -85,11 +85,6 @@ function getPhotos(car: Car): string[] {
     }
   } catch {}
   return urls;
-}
-
-function formatPrice(cny: number): string {
-  if (!cny) return "—";
-  return `¥${(cny / 10000).toFixed(1)} вн`;
 }
 
 export default async function CarPage({ params }: { params: Promise<{ id: string }> }) {
@@ -243,7 +238,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
             {/* Цена */}
             <div className="bg-graphite-800 rounded-xl p-5 mb-5">
               <div className="text-orange-400 font-heading font-bold text-3xl mb-1">
-                {formatPrice(car.price_cny)}
+                {formatCnyPrice(car.price_cny)}
               </div>
               <div className="text-gray-500 font-body text-xs">
                 Цена в Китае. Стоимость под ключ — рассчитаем индивидуально.

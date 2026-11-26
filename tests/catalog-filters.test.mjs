@@ -40,13 +40,14 @@ test("customs age bounds apply to listing, counts and every catalog facet", asyn
   const db = {
     async query(sql) {
       queries.push(sql);
+      if (sql.includes('AS "priceAvailable"'))
+        return { rows: [{ total: 0, priceAvailable: false }] };
       if (sql.includes(" AS total")) return { rows: [{ total: 0 }] };
       if (sql.includes(" AS y1")) return { rows: [{ y1: null, y2: null }] };
-      if (sql.includes(" AS available")) return { rows: [{ available: false }] };
       return { rows: [] };
     },
   };
-  const { getCatalogFacets, getCatalogList, getCatalogVisibleCount } = load(
+  const { getCatalogFacets, getCatalogList, getCatalogSummary } = load(
     "../src/lib/catalog-data.ts",
     {
       "./catalog-filters": filters,
@@ -58,9 +59,10 @@ test("customs age bounds apply to listing, counts and every catalog facet", asyn
   const f = filters.parseFilters({ brand: "mazda", model: "cx-30", body: "suv", yearFrom: "2022" });
   const facets = await getCatalogFacets(f);
   assert.deepEqual(Array.from(facets.ranges.year), [null, null]);
+  assert.equal(facets.priceAvailable, false);
   await getCatalogList(f);
   await getCatalogList({ ...f, sort: "newest" });
-  assert.equal(await getCatalogVisibleCount(), 0);
+  assert.deepEqual(await getCatalogSummary(), { total: 0, priceAvailable: false });
   assert.equal(queries.length, 11);
   for (const query of queries) assert.ok(query.includes(age.CATALOG_VISIBLE_SQL), query);
 });

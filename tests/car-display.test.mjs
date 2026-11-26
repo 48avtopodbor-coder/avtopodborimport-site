@@ -18,11 +18,13 @@ function load(path, imports = {}) {
   vm.runInNewContext(source, {
     module: loadedModule,
     exports: loadedModule.exports,
+    URLSearchParams,
     require: (name) => imports[name],
   });
   return loadedModule.exports;
 }
 const titles = load("../src/lib/car-title.ts");
+const format = load("../src/lib/format.ts");
 const { electricRange } = load("../src/lib/electric-range.ts");
 const { specPower, powerRows } = load("../src/lib/power.ts");
 const powerFixtures = JSON.parse(
@@ -79,7 +81,7 @@ test("catalog card uses mapped model and registration year, including photo alt"
     "react/jsx-runtime": jsx,
     "next/link": { default: (props) => React.createElement("a", props) },
     "@/lib/car-title": titles,
-    "@/lib/format": { firstDisplayValue: () => "Электро" },
+    "@/lib/format": format,
   }).default;
   const markup = renderToStaticMarkup(
     React.createElement(Card, { car: { ...dolphin, local_photo: "/photos/test.jpg" } }),
@@ -87,6 +89,32 @@ test("catalog card uses mapped model and registration year, including photo alt"
   assert.match(markup, /BYD Dolphin 2022/);
   assert.match(markup, /alt="BYD Dolphin 2022"/);
   assert.doesNotMatch(markup, /2021|405km|海豚/);
+  assert.match(markup, /¥\s55\s800/);
+});
+test("home search shares body codes and turns on all ruble controls together", () => {
+  const filters = load("../src/lib/catalog-filters.ts");
+  const Search = load("../src/components/home/HeroSearch.tsx", {
+    "react/jsx-runtime": jsx,
+    "next/navigation": { useRouter: () => ({}) },
+    "next/link": {
+      default: ({ href, className, children }) => React.createElement("a", { href, className }, children),
+    },
+    "@/lib/catalog-filters": filters,
+    "@/lib/format": format,
+  }).default;
+  const render = (priceAvailable) =>
+    renderToStaticMarkup(React.createElement(Search, { total: 10, priceAvailable }));
+  const hidden = render(false);
+  assert.match(hidden, /<form[^>]* action="\/catalog\/used"/);
+  for (const [code, label] of Object.entries(filters.BODY_NAMES)) {
+    assert.ok(hidden.includes(`<option value="${code}">${label}</option>`));
+  }
+  assert.match(hidden, /href="\/catalog\/used\?body=suv"/);
+  assert.doesNotMatch(hidden, /name="priceTo"|До [23] млн|\/catalog\/new/);
+  const shown = render(true);
+  assert.match(shown, /name="priceTo"/);
+  for (const millions of [2, 3])
+    assert.ok(shown.includes(`href="/catalog/used?priceTo=${millions * 1_000_000}"`));
 });
 test("range is read from model specs, with duplicate sections deduplicated", () => {
   const spec = params(["NEDC纯电续航里程(km)", "405"], ["NEDC纯电续航里程(km)", "405"]);
