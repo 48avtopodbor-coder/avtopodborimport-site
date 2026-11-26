@@ -1,5 +1,7 @@
 import importlib.util
+import json
 import os
+from collections import Counter
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -22,6 +24,25 @@ def create_database(path):
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_import_wraps_legacy_cover_without_overwriting_detail_photos(self):
+        cover = "https://2sc2.autoimg.cn/cars/cover.webp"
+        gallery = '["https://2sc2.autoimg.cn/cars/detail.webp"]'
+        for images, expected in (
+            (cover, json.dumps([cover])),
+            (gallery, gallery),
+            (None, None),
+            ("https://other.example/cars/cover.webp", "https://other.example/cars/cover.webp"),
+        ):
+            with self.subTest(images=images):
+                row = {"listing_id": "123", "images": images, "photos": gallery}
+                source = tuple(row.get(column) for column in import_cars.CAR_COLS)
+                imported = dict(zip(
+                    import_cars.CAR_DST_COLS,
+                    import_cars.enrich_car(source, {}, {}, Counter()),
+                ))
+                self.assertEqual(imported["images"], expected)
+                self.assertEqual(imported["photos"], gallery)
+
     def test_hard_link_and_published_path_share_identity(self):
         with tempfile.TemporaryDirectory() as directory:
             published = Path(directory) / "cars.db"
