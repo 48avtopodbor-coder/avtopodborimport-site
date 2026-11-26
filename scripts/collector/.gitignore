@@ -1,0 +1,11 @@
+/config.py
+/config.py.*
+/che168_api.py
+/che168_client.py
+/eo_solve.js
+/.venv/
+/data/
+/photos/
+*.db
+*.db-*
+*.log
