@@ -11,6 +11,7 @@ import CatalogFilters from "./CatalogFilters";
 import CatalogCard from "./CatalogCard";
 import { catalogNoScriptForm } from "@/lib/catalog-noscript";
 import { formatCarCount } from "@/lib/format";
+import { SITE_ORIGIN } from "@/lib/site";
 type Props = { searchParams: Promise<QueryInput> };
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const filters = await normalizeCatalogFilters(parseFilters(await searchParams));
@@ -20,8 +21,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     ? `${brand.name} с пробегом из Китая — купить под ключ`
     : "Авто с пробегом из Китая — AVTOPODBOR IMPORT";
   const canonical =
-    "https://avtopodborimport.ru/catalog/used" +
-    (brand ? "?" + new URLSearchParams({ brand: brand.slug }) : "");
+    `${SITE_ORIGIN}/catalog/used` + (brand ? "?" + new URLSearchParams({ brand: brand.slug }) : "");
   return {
     title,
     description: brand
@@ -59,8 +59,8 @@ export default async function UsedCatalogPage({ searchParams }: Props) {
           </section>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {list.items.map((car) => (
-              <CatalogCard key={car.listing_id} car={car} />
+            {list.items.map((car, index) => (
+              <CatalogCard key={car.listing_id} car={car} eager={index < 4} />
             ))}
           </div>
         )}

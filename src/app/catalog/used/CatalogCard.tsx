@@ -16,7 +16,7 @@ function getFirstPhoto(car: CatalogCar): string | null {
   return null;
 }
 
-export default function CatalogCard({ car }: { car: CatalogCar }) {
+export default function CatalogCard({ car, eager }: { car: CatalogCar; eager: boolean }) {
   const name = formatCarFullName(car);
   const remotePhoto = getFirstPhoto(car);
   const photoSrc =
@@ -29,7 +29,13 @@ export default function CatalogCard({ car }: { car: CatalogCar }) {
       {/* Фото */}
       <div className="relative h-44 bg-graphite-700">
         {photoSrc ? (
-          <img src={photoSrc} alt={name} className="w-full h-full object-cover" />
+          <img
+            src={photoSrc}
+            alt={name}
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            className="w-full h-full object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-600">
             <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">

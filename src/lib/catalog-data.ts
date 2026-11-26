@@ -36,8 +36,17 @@ export interface CatalogCar extends CarTitleData {
   images: string | null;
   local_photo: string | null;
 }
-const FROM = `FROM cars c LEFT JOIN brands b ON b.id=c.brand_id OR (c.brand_id IS NULL AND b.name=c.brand_ru)
+const CAR_BRANDS =
+  "LEFT JOIN brands b ON b.id=c.brand_id OR (c.brand_id IS NULL AND b.name=c.brand_ru)";
+const FROM = `FROM cars c ${CAR_BRANDS}
  LEFT JOIN catalog_spec_bodies cb ON cb.spec_id=c.spec_id LEFT JOIN specs s ON s.spec_id=c.spec_id`;
+export async function getCatalogSitemapEntries() {
+  const { rows } = await pool.query<{ listing_id: string; brand_slug: string | null }>(
+    `SELECT c.listing_id::text, b.slug AS brand_slug
+     FROM cars c ${CAR_BRANDS} WHERE ${CATALOG_VISIBLE_SQL} ORDER BY c.listing_id`,
+  );
+  return rows;
+}
 export const getCatalogSummary = unstable_cache(
   async () => {
     const { rows } = await pool.query<{ total: number; priceAvailable: boolean }>(
