@@ -17,6 +17,7 @@ scraper.py — сборщик б/у авто che168 через API мобиль�
 """
 
 import calendar
+from collections import Counter
 import json
 import os
 import sys
@@ -27,6 +28,7 @@ from config import TARGET_BRANDS, SUBBRAND_RULES, MIN_YEAR, MAX_YEAR
 import che168_api as api
 from database import init_db, save_cars, get_stats, get_conn
 from details import fetch_details
+from registration_age import registration_year_summary
 
 PAGE_SIZE = 20                  # больше API за раз не отдаёт
 MAX_PAGES = 25                  # глубже 25 страниц (500 машин) API повторяет уже выданное
@@ -199,7 +201,6 @@ def leaf(bid, brand, f, first, run, max_pages):
 def collect_brand(brand, bid, age, max_pages, run):
     """Все машины бренда: делит запрос на срезы до CAP машин и листает каждый. Возвращает (по API, собрано)."""
     name = brand["name_ru"]
-    this_year = time.localtime().tm_year
     got, seen = set(), set()
     whole = None
 
@@ -218,6 +219,11 @@ def collect_brand(brand, bid, age, max_pages, run):
             logger.error("   {}: срез {} не получен", name, f)
             continue
         items, total, _ = first
+        lo_age, hi_age = map(int, f["agerange"].split("-"))
+        if lo_age == hi_age and len(f) == 1:
+            sample = Counter(str(item.get("firstregyear") or "?")[:4] for item in items)
+            logger.info("   {} | agerange={} | firstregyear на первой странице: {}",
+                        name, f["agerange"], dict(sorted(sample.items())))
         if whole is None:
             whole = total
             logger.info("{} (id {}): {} машин", name, bid, total)
@@ -230,10 +236,8 @@ def collect_brand(brand, bid, age, max_pages, run):
             take(leaf(bid, brand, f, first, run, max_pages))
             continue
         keep(items, brand, run, got, seen)        # первая страница большого среза тоже идёт в базу
-        lo_age, hi_age = f["agerange"].split("-")
-        if lo_age != hi_age:                      # 1) по году
-            for year in range(MIN_YEAR, MAX_YEAR + 1):
-                a = this_year - year + 1
+        if lo_age != hi_age:                      # 1) по возрастным диапазонам API
+            for a in range(lo_age, hi_age + 1):
                 stack.append(({"agerange": "{}-{}".format(a, a)}, total))
         elif "price" not in f:                    # 2) по цене
             for lo, hi in PRICE_START:
@@ -304,6 +308,10 @@ def main():
         fetch_details(since=run_start)
 
     st = get_stats()
+    with get_conn() as conn:
+        dates = conn.execute("SELECT first_reg_date,year FROM cars WHERE is_active=1")
+        distribution = registration_year_summary(dates, range(MIN_YEAR - 1, MAX_YEAR + 2))
+    logger.info("Активные машины по годам регистрации: {}", distribution)
     logger.info("=== Готово. Найдено {} из {} по API, из них {}–{} г.: {}, новых {} | в базе {}, продаётся {}, "
                 "с данными {} | запросов к API: {} ===", len(run.seen), api_total, MIN_YEAR, MAX_YEAR,
                 len(run.ids), run.new, st["total"], st["active"], st["with_params"], api.stats["requests"])
