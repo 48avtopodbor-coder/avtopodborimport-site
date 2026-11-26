@@ -10,7 +10,7 @@
 
 --dry-run  проверить источник и посчитать удаление по возрасту без записи.
 --force    импортировать, даже если копия не менялась.
---allow-mass-delete  разрешить удаление выше порога и повторную обработку той же копии.
+--allow-mass-delete  снять оба порога удаления и повторно обработать ту же копию.
 --normalize-photo-links  исправить ссылки у активных машин без локального главного фото.
                         С --dry-run только посчитать объявления для исправления.
 
@@ -39,7 +39,8 @@ LOCK_PATH = "/tmp/import_cars.lock"
 # Дата копии, которую уже перенесли (домашняя папка postgres)
 STATE_PATH = os.environ.get("IMPORT_STATE", "/var/lib/postgresql/import_cars.last")
 SOLD_DELETE_BLOCKED = "sold-delete-blocked"
-SOLD_DELETE_BLOCKED_EXIT = 3
+AGED_DELETE_BLOCKED = "aged-delete-blocked"
+DELETE_BLOCKED_EXIT = 3
 BATCH = 1000
 SOURCE_PHOTO_URL = re.compile(r"""https://(?:[0-9a-z-]+\.)+autoimg\.cn/[^\s"'\\]+""")
 
@@ -284,20 +285,35 @@ def run_import():
         last = last_result = ""
     if last == identity and not (force or allow_mass_delete):
         sq.close()
-        if last_result == SOLD_DELETE_BLOCKED:
+        status_lines = last_result.splitlines()
+        blocked = set(status_lines)
+        if SOLD_DELETE_BLOCKED in blocked:
             print("ПРЕДОХРАНИТЕЛЬ: эта копия уже импортирована с пропуском удаления")
-            return SOLD_DELETE_BLOCKED_EXIT
+        if AGED_DELETE_BLOCKED in blocked:
+            saved_report = next((line for line in status_lines if line.startswith("ПРЕДОХРАНИТЕЛЬ ВОЗРАСТА:")), None)
+            print(saved_report or "ПРЕДОХРАНИТЕЛЬ ВОЗРАСТА: эта копия уже импортирована с пропуском удаления")
+        if blocked & {SOLD_DELETE_BLOCKED, AGED_DELETE_BLOCKED}:
+            return DELETE_BLOCKED_EXIT
         print("копия не менялась с прошлого импорта — пропуск")
         return
 
     import psycopg2
-    from sold_cars import remove_aged_out, remove_confirmed
+    from sold_cars import count_active, remove_aged_out, remove_confirmed
+    age_reports = []
+
+    def report_age_block(message):
+        age_reports.append(message)
+        print(message, flush=True)
+
     pg = psycopg2.connect(PG_DSN)
     try:
         with pg, pg.cursor() as cur:  # одна транзакция: сайт видит либо старые данные, либо новые
             oldest, source_aged, site_aged = registration_cleanup_plan(sq, cur)
-            removed = remove_confirmed(sq, cur, allow_mass_delete=allow_mass_delete, aged_out_ids=site_aged)
-            aged_removed = remove_aged_out(cur, site_aged)
+            active_before_deletion = count_active(cur)
+            removed = remove_confirmed(sq, cur, allow_mass_delete=allow_mass_delete, aged_out_ids=site_aged,
+                                       active_count=active_before_deletion)
+            aged_removed = remove_aged_out(cur, site_aged, oldest=oldest, allow_mass_delete=allow_mass_delete,
+                                          active_count=active_before_deletion, report=report_age_block)
             title_catalog = load_title_catalog(cur)
             s = copy_table(sq, cur, spec_upsert_sql(), SPEC_SRC, "specs")
             c = copy_table(sq, cur, car_upsert_sql(), CAR_COLS, "cars", title_catalog,
@@ -307,19 +323,24 @@ def run_import():
     finally:
         pg.close()
         sq.close()
-    print(f"Удалено по возрасту: {aged_removed} (месяц регистрации ≤ {oldest}); "
+    age_result = "Удаление по возрасту пропущено" if aged_removed is None else f"Удалено по возрасту: {aged_removed}"
+    print(f"{age_result} (месяц регистрации ≤ {oldest}); "
           f"исключено из копии: {len(source_aged)}", flush=True)
     from refresh_catalog_queue import main as refresh_catalog_queue
     refresh_catalog_queue()
     temporary_state = STATE_PATH + ".tmp"
+    blocked = []
+    if removed is None:
+        blocked.append(SOLD_DELETE_BLOCKED)
+    if aged_removed is None:
+        blocked.append(AGED_DELETE_BLOCKED)
     with open(temporary_state, "w") as f:
-        result = SOLD_DELETE_BLOCKED + "\n" if removed is None else ""
-        f.write(identity + "\n" + result)
+        f.write("\n".join([identity, *blocked, *age_reports]) + "\n")
     os.replace(temporary_state, STATE_PATH)
     deletion = "удаление снятых пропущено" if removed is None else f"удалено снятых {removed}"
     print(f"готово за {time.time() - t0:.0f} с: комплектаций {s}, машин {c}; "
           f"на сайте машин {site_total}, в продаже с ценой {site_active}; {deletion}")
-    return SOLD_DELETE_BLOCKED_EXIT if removed is None else 0
+    return DELETE_BLOCKED_EXIT if blocked else 0
 
 
 if __name__ == "__main__":

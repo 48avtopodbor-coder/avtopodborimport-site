@@ -1,5 +1,6 @@
 import hashlib
 from contextlib import closing, redirect_stdout
+from datetime import date
 import io
 import os
 from pathlib import Path
@@ -13,7 +14,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import cleanup_sold_photos as local
 from cleanup_collector_photos import cleanup
-from sold_cars import remove_confirmed
+from sold_cars import remove_aged_out, remove_confirmed
 
 
 class SoldCleanupTests(unittest.TestCase):
@@ -126,3 +127,30 @@ class SoldDeletionTests(unittest.TestCase):
             self.assertEqual(self.remove(matches=500, active=1000, allow_mass_delete=True), 500)
         self.assertEqual(len(self.execute_values.call_args.args[2]), 500)
         self.assertIn("DELETE FROM cars", self.cursor.execute.call_args.args[0])
+
+    def remove_aged(self, matches, active, **kwargs):
+        ids = [f"aged{n}" for n in range(matches)]
+        self.cursor.fetchall.return_value = [(lid, None, None) for lid in ids]
+        self.cursor.fetchone.return_value = (active,)
+        self.cursor.rowcount = matches
+        return remove_aged_out(self.cursor, ids, oldest=date(2022, 1, 10), **kwargs)
+
+    def test_age_guard_blocks_over_ten_percent_without_queuing_files(self):
+        log = io.StringIO()
+        with patch.dict(os.environ, {"SOLD_DELETE_MAX_PERCENT": "100"}, clear=True), redirect_stdout(log):
+            self.assertIsNone(self.remove_aged(matches=11, active=100))
+        self.execute_values.assert_not_called()
+        self.assertFalse(any("DELETE FROM cars" in call.args[0] for call in self.cursor.execute.call_args_list))
+        self.assertIn("К удалению 11, активных машин на сайте 100, порог 10, граница 2022-01-10", log.getvalue())
+
+    def test_age_guard_allows_normal_monthly_cleanup(self):
+        with patch.dict(os.environ, {"SOLD_DELETE_MAX_PERCENT": "0"}, clear=True):
+            self.assertEqual(self.remove_aged(matches=1000, active=24000), 1000)
+        self.assertIn("sold_car_cleanup", self.execute_values.call_args.args[1])
+        self.assertEqual(len(self.execute_values.call_args.args[2]), 1000)
+
+    def test_configured_age_limit_and_manual_override(self):
+        with patch.dict(os.environ, {"AGED_DELETE_MAX_PERCENT": "4"}), redirect_stdout(io.StringIO()):
+            self.assertIsNone(self.remove_aged(matches=1000, active=24000))
+            self.execute_values.assert_not_called()
+            self.assertEqual(self.remove_aged(matches=1000, active=24000, allow_mass_delete=True), 1000)
