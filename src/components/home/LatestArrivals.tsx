@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatCarFullName, type CarTitleData } from "@/lib/car-title";
 import pool from "@/lib/db";
 import { CATALOG_VISIBLE_SQL } from "@/lib/catalog-age";
-import { firstDisplayValue, formatCarCount } from "@/lib/format";
+import { firstDisplayValue, formatCarCount, formatCnyPrice } from "@/lib/format";
 import ArrivalPhoto from "./ArrivalPhoto";
 
 interface Car extends CarTitleData {
@@ -98,7 +98,7 @@ export default async function LatestArrivals({ total }: { total: number | null }
                     <div className="border-t border-white/5 pt-3">
                       <div className="text-gray-500 font-body text-xs mb-0.5">Цена в Китае</div>
                       <div className="font-heading font-bold text-orange-500 text-base">
-                        ¥{new Intl.NumberFormat("ru-RU").format(car.price_cny)}
+                        {formatCnyPrice(car.price_cny)}
                       </div>
                     </div>
                   </div>

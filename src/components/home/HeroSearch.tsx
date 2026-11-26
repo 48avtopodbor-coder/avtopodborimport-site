@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { usedBrandHref } from "@/lib/catalog";
+import { BODY_NAMES, MAX_PRICE_RUB, catalogHref, parseFilters } from "@/lib/catalog-filters";
 import { formatCarCount } from "@/lib/format";
 
 const BRANDS = [
-  "Любая марка",
   "Haval",
   "Geely",
   "Chery",
@@ -28,23 +27,33 @@ const BRANDS = [
   "Mazda",
 ];
 
-const BODY_TYPES = ["Любой кузов", "Седан", "Кроссовер", "Внедорожник", "Хэтчбек", "Минивэн"];
+const controlClass =
+  "w-full min-w-0 bg-graphite-700 text-white font-body text-sm rounded-xl px-4 py-3";
 const quickFilterClass =
   "bg-graphite-800 hover:bg-graphite-700 text-gray-400 hover:text-white font-body text-xs px-4 py-2 rounded-full border border-white/5 transition-all";
 
-export default function HeroSearch({ total }: { total: number | null }) {
+export default function HeroSearch({
+  total,
+  priceAvailable,
+}: {
+  total: number | null;
+  priceAvailable: boolean;
+}) {
   const router = useRouter();
-  const [brand, setBrand] = useState("");
-  const [bodyType, setBodyType] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-  const [catalogType, setCatalogType] = useState<"used" | "new">("used");
 
-  const handleSearch = () => {
-    const params = new URLSearchParams();
-    if (brand) params.set("brand", brand);
-    if (bodyType) params.set("body", bodyType);
-    if (priceMax) params.set("price_max", priceMax);
-    router.push(`/catalog/${catalogType}?${params.toString()}`);
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const budget = String(data.get("priceTo") ?? "");
+    router.push(
+      catalogHref(
+        parseFilters({
+          brand: String(data.get("brand") ?? ""),
+          body: String(data.get("body") ?? ""),
+          priceTo: priceAvailable && budget ? String(Number(budget)) : undefined,
+        }),
+      ),
+    );
   };
 
   return (
@@ -67,97 +76,82 @@ export default function HeroSearch({ total }: { total: number | null }) {
           </p>
         </div>
 
-        {/* Переключатель каталога */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-graphite-800 rounded-xl p-1 flex gap-1">
-            <button
-              onClick={() => setCatalogType("used")}
-              className={`px-6 py-2.5 rounded-lg font-body font-semibold text-sm transition-all ${
-                catalogType === "used"
-                  ? "bg-orange-500 text-white shadow"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              С пробегом
-            </button>
-            <button
-              onClick={() => setCatalogType("new")}
-              className={`px-6 py-2.5 rounded-lg font-body font-semibold text-sm transition-all ${
-                catalogType === "new"
-                  ? "bg-orange-500 text-white shadow"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Новые
-            </button>
-          </div>
-        </div>
-
         {/* Поисковая форма */}
         <div className="max-w-3xl mx-auto">
-          <div className="bg-graphite-800 rounded-2xl p-2 flex flex-col sm:flex-row gap-2">
-            {/* Марка */}
-            <select
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              className="flex-1 bg-graphite-700 text-white font-body text-sm rounded-xl px-4 py-3 outline-none appearance-none cursor-pointer"
-            >
+          <form
+            action="/catalog/used"
+            onSubmit={handleSearch}
+            className={`grid grid-cols-1 gap-2 rounded-2xl bg-graphite-800 p-2 ${
+              priceAvailable
+                ? "sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,0.85fr)_auto]"
+                : "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+            }`}
+          >
+            <select name="brand" aria-label="Марка" className={`${controlClass} cursor-pointer`}>
+              <option value="">Любая марка</option>
               {BRANDS.map((b) => (
-                <option key={b} value={b === "Любая марка" ? "" : b}>
+                <option key={b} value={b}>
                   {b}
                 </option>
               ))}
             </select>
 
-            {/* Кузов */}
-            <select
-              value={bodyType}
-              onChange={(e) => setBodyType(e.target.value)}
-              className="flex-1 bg-graphite-700 text-white font-body text-sm rounded-xl px-4 py-3 outline-none appearance-none cursor-pointer"
-            >
-              {BODY_TYPES.map((b) => (
-                <option key={b} value={b === "Любой кузов" ? "" : b}>
-                  {b}
+            <select name="body" aria-label="Кузов" className={`${controlClass} cursor-pointer`}>
+              <option value="">Любой кузов</option>
+              {Object.entries(BODY_NAMES).map(([code, label]) => (
+                <option key={code} value={code}>
+                  {label}
                 </option>
               ))}
             </select>
 
-            {/* Бюджет */}
-            <input
-              type="number"
-              placeholder="Бюджет, ₽"
-              value={priceMax}
-              onChange={(e) => setPriceMax(e.target.value)}
-              className="flex-1 bg-graphite-700 text-white font-body text-sm rounded-xl px-4 py-3 outline-none placeholder:text-gray-500"
-            />
+            {priceAvailable && (
+              <input
+                name="priceTo"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={MAX_PRICE_RUB}
+                aria-label="Бюджет, ₽"
+                placeholder="Бюджет, ₽"
+                className={`${controlClass} placeholder:text-gray-500`}
+              />
+            )}
 
-            {/* Кнопка поиска */}
             <button
-              onClick={handleSearch}
+              type="submit"
               className="bg-orange-500 hover:bg-orange-600 text-white font-body font-bold text-sm px-8 py-3 rounded-xl transition-colors whitespace-nowrap"
             >
               Найти авто
             </button>
-          </div>
+          </form>
 
           {/* Быстрые фильтры */}
           <div className="flex flex-wrap gap-2 mt-4 justify-center">
-            {["До 2 млн ₽", "До 3 млн ₽", "Кроссоверы"].map((tag) => (
-              <button key={tag} className={quickFilterClass}>
-                {tag}
-              </button>
-            ))}
-            {catalogType === "used" &&
-              ["Haval", "Geely", "BYD"].map((name) => (
+            {priceAvailable &&
+              [2, 3].map((millions) => (
                 <Link
-                  key={name}
-                  href={usedBrandHref(name)}
+                  key={millions}
+                  href={`/catalog/used?priceTo=${millions * 1_000_000}`}
                   prefetch={false}
                   className={quickFilterClass}
                 >
-                  {name}
+                  До {millions} млн ₽
                 </Link>
               ))}
+            <Link href="/catalog/used?body=suv" prefetch={false} className={quickFilterClass}>
+              Кроссоверы
+            </Link>
+            {["Haval", "Geely", "BYD"].map((name) => (
+              <Link
+                key={name}
+                href={catalogHref(parseFilters({ brand: name }))}
+                prefetch={false}
+                className={quickFilterClass}
+              >
+                {name}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

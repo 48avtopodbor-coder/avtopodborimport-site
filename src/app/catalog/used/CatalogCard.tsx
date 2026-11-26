@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatCarFullName } from "@/lib/car-title";
-import { firstDisplayValue } from "@/lib/format";
+import { firstDisplayValue, formatCnyPrice } from "@/lib/format";
 import type { CatalogCar } from "@/lib/catalog-data";
 function getFirstPhoto(car: CatalogCar): string | null {
   try {
@@ -14,13 +14,6 @@ function getFirstPhoto(car: CatalogCar): string | null {
     }
   } catch {}
   return null;
-}
-
-function formatPrice(cny: number): string {
-  if (!cny) return "—";
-  // Примерный курс: 1 CNY ≈ 13.5 RUB, доставка ~300к, таможня ~зависит от объёма
-  // Пока показываем только цену в Китае
-  return `¥${(cny / 10000).toFixed(1)} вн`;
 }
 
 export default function CatalogCard({ car }: { car: CatalogCar }) {
@@ -64,7 +57,7 @@ export default function CatalogCard({ car }: { car: CatalogCar }) {
           )}
         </div>
         <div className="text-orange-400 font-heading font-bold text-sm">
-          {formatPrice(car.price_cny)}
+          {formatCnyPrice(car.price_cny)}
         </div>
         <div className="text-xs text-gray-500 font-body">{car.city_display}</div>
       </div>

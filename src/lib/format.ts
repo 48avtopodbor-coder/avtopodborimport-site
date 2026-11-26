@@ -1,14 +1,19 @@
 // Китайские иероглифы: такие значения не показываем, пока у них нет перевода
 const CJK = /[　-〿㐀-䶿一-鿿＀-￯]/;
 
-const carCountNumber = new Intl.NumberFormat("ru-RU");
+const russianNumber = new Intl.NumberFormat("ru-RU");
 const carCountPlural = new Intl.PluralRules("ru-RU");
 const carCountWords = { one: "автомобиль", few: "автомобиля" };
 
 export function formatCarCount(count: number): string {
   const plural = carCountPlural.select(count);
   const word = plural === "one" || plural === "few" ? carCountWords[plural] : "автомобилей";
-  return `${carCountNumber.format(count)} ${word}`;
+  return `${russianNumber.format(count)} ${word}`;
+}
+
+export function formatCnyPrice(price: number | null | undefined): string {
+  if (price == null || !Number.isFinite(price) || price <= 0) return "—";
+  return `¥\u00a0${russianNumber.format(price)}`;
 }
 
 // Значение для показа на сайте: без иероглифов и с заглавной буквы.
