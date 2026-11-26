@@ -23,6 +23,7 @@ function load(path, imports = {}) {
 }
 const filters = load("../src/lib/catalog-filters.ts");
 const age = load("../src/lib/catalog-age.ts");
+const { formatCarCount } = load("../src/lib/format.ts");
 const { catalogNoScriptForm } = load("../src/lib/catalog-noscript.ts");
 const data = load("../src/lib/catalog-data.ts", {
   "./catalog-filters": filters,
@@ -33,7 +34,7 @@ const data = load("../src/lib/catalog-data.ts", {
 test("customs age bounds apply to listing, counts and every catalog facet", async () => {
   assert.equal(
     age.CATALOG_AGE_SQL,
-    "(c.reg_month > (current_date + 45 - interval '5 years') AND c.reg_month <= (current_date + 45 - interval '3 years'))",
+    "(c.reg_month > (current_date + 45 - interval '5 years') AND (c.reg_month + interval '1 month' - interval '1 day') <= (current_date + 45 - interval '3 years'))",
   );
   const queries = [];
   const db = {
@@ -45,19 +46,31 @@ test("customs age bounds apply to listing, counts and every catalog facet", asyn
       return { rows: [] };
     },
   };
-  const { getCatalogFacets, getCatalogList } = load("../src/lib/catalog-data.ts", {
-    "./catalog-filters": filters,
-    "./catalog-age": age,
-    "@/lib/db": { default: db },
-    "next/cache": { unstable_cache: (f) => f },
-  });
+  const { getCatalogFacets, getCatalogList, getCatalogVisibleCount } = load(
+    "../src/lib/catalog-data.ts",
+    {
+      "./catalog-filters": filters,
+      "./catalog-age": age,
+      "@/lib/db": { default: db },
+      "next/cache": { unstable_cache: (f) => f },
+    },
+  );
   const f = filters.parseFilters({ brand: "mazda", model: "cx-30", body: "suv", yearFrom: "2022" });
   const facets = await getCatalogFacets(f);
   assert.deepEqual(Array.from(facets.ranges.year), [null, null]);
   await getCatalogList(f);
   await getCatalogList({ ...f, sort: "newest" });
-  assert.equal(queries.length, 10);
+  assert.equal(await getCatalogVisibleCount(), 0);
+  assert.equal(queries.length, 11);
   for (const query of queries) assert.ok(query.includes(age.CATALOG_VISIBLE_SQL), query);
+});
+test("catalog counts use Russian singular, few and many forms", () => {
+  assert.equal(formatCarCount(0), "0 автомобилей");
+  assert.equal(formatCarCount(1), "1 автомобиль");
+  assert.equal(formatCarCount(2), "2 автомобиля");
+  assert.equal(formatCarCount(5), "5 автомобилей");
+  assert.equal(formatCarCount(11), "11 автомобилей");
+  assert.equal(formatCarCount(21), "21 автомобиль");
 });
 test("unsafe and malformed URL values do not become SQL or negative pagination", () => {
   const f = filters.parseFilters({

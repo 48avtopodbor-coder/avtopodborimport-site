@@ -49,3 +49,12 @@ def customs_registration_bounds(today=None):
 def customs_years(today=None):
     oldest, youngest = customs_registration_bounds(today)
     return oldest.year, youngest.year
+
+
+def in_customs_window(month, today=None):
+    """A month qualifies when both its first and last day meet the age bounds."""
+    if month is None:
+        return False
+    oldest, youngest = customs_registration_bounds(today)
+    last_day = month.replace(day=calendar.monthrange(month.year, month.month)[1])
+    return oldest < month.replace(day=1) and last_day <= youngest

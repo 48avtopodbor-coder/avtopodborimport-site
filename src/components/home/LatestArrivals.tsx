@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatCarFullName, type CarTitleData } from "@/lib/car-title";
 import pool from "@/lib/db";
 import { CATALOG_VISIBLE_SQL } from "@/lib/catalog-age";
-import { firstDisplayValue } from "@/lib/format";
+import { firstDisplayValue, formatCarCount } from "@/lib/format";
 import ArrivalPhoto from "./ArrivalPhoto";
 
 interface Car extends CarTitleData {
@@ -15,13 +15,11 @@ interface Car extends CarTitleData {
   local_photo: string;
 }
 
-export default async function LatestArrivals() {
-  let cars: Car[] = [];
-  let total: number | null = null;
+export default async function LatestArrivals({ total }: { total: number | null }) {
+  let cars: Car[] | null = null;
   try {
-    const [carsResult, countResult] = await Promise.all([
-      pool.query<Car>(
-        `WITH latest_by_brand AS (
+    const carsResult = await pool.query<Car>(
+      `WITH latest_by_brand AS (
            SELECT DISTINCT ON (lower(trim(brand_ru))) *
            FROM cars c
            WHERE ${CATALOG_VISIBLE_SQL}
@@ -39,17 +37,16 @@ export default async function LatestArrivals() {
          LEFT JOIN city_translations ct ON ct.city_cn = c.city
          ORDER BY c.scraped_at DESC NULLS LAST, c.listing_id DESC
          LIMIT 4`,
-      ),
-      pool.query<{ count: string }>(`SELECT COUNT(*) FROM cars c WHERE ${CATALOG_VISIBLE_SQL}`),
-    ]);
+    );
     cars = carsResult.rows;
-    total = Number(countResult.rows[0].count);
   } catch (error) {
     console.error("Не удалось загрузить свежие объявления", error);
   }
 
   const catalogLabel =
-    total === null ? "Все автомобили" : `Все ${total.toLocaleString("ru-RU")} авто`;
+    total === null
+      ? "Все автомобили"
+      : `${total > 1 ? "Все" : "Смотреть"} ${formatCarCount(total)}`;
 
   return (
     <section className="bg-graphite-900 py-16">
@@ -71,7 +68,7 @@ export default async function LatestArrivals() {
           </Link>
         </div>
 
-        {cars.length > 0 ? (
+        {cars && cars.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 empty:before:col-span-full empty:before:font-body empty:before:text-sm empty:before:text-gray-400 empty:before:content-['Пока_нет_объявлений_с_доступными_фото.']">
             {cars.map((car) => {
               const fuel = firstDisplayValue(car.fuel, car.spec_fuel);
@@ -111,7 +108,7 @@ export default async function LatestArrivals() {
           </div>
         ) : (
           <p className="text-gray-400 font-body text-sm">
-            {total === null
+            {cars === null
               ? "Не удалось загрузить объявления. Попробуйте позже."
               : "Пока нет подходящих объявлений с фото."}
           </p>

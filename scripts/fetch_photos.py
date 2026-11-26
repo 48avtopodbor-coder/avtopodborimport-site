@@ -32,6 +32,7 @@ import tempfile
 import threading
 import time
 from datetime import datetime
+from catalog_age import CUSTOMS_AGE_SQL, NOT_AGED_OUT_SQL
 
 PHOTOS_DIR = os.environ.get("PHOTOS_DIR", "/opt/avtopodborimport/photos")
 DB_NAME = os.environ.get("PHOTOS_DB", "avtopodborimport")
@@ -54,9 +55,10 @@ ID_RE = re.compile(r"^[0-9A-Za-z_-]{1,40}$")
 URL_RE = re.compile(r"^https://[0-9a-z.-]+\.autoimg\.cn/[^\s\"'\\]+$")
 
 # На каждую машину берём максимум четыре исходных URL.
-PHOTO_SOURCES_SQL = """
+PHOTO_SOURCES_SQL = f"""
 WITH source AS (
   SELECT listing_id::text AS listing_id, scraped_at, local_photo, local_photo_2, local_photo_3, local_photo_4,
+         {CUSTOMS_AGE_SQL} AS visible,
          COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>0 END,
                   CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>0 END) AS first_url,
          COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>1 END,
@@ -65,8 +67,8 @@ WITH source AS (
                   CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>2 END) AS third_url,
          COALESCE(CASE WHEN pg_input_is_valid(photos, 'json') THEN photos::json->>3 END,
                   CASE WHEN pg_input_is_valid(images, 'json') THEN images::json->>3 END) AS fourth_url
-  FROM cars
-  WHERE is_active = 1 AND price_cny > 0
+  FROM cars c
+  WHERE c.is_active = 1 AND c.price_cny > 0 AND {NOT_AGED_OUT_SQL}
 )
 """
 COUNT_SQL = PHOTO_SOURCES_SQL + """
@@ -84,7 +86,7 @@ CROSS JOIN LATERAL (VALUES (1, first_url, local_photo), (2, second_url, local_ph
                            (3, third_url, local_photo_3), (4, fourth_url, local_photo_4))
   AS photo(photo_index, url, local_path)
 WHERE url IS NOT NULL AND local_path IS NULL
-ORDER BY photo_index ASC, scraped_at DESC
+ORDER BY visible DESC NULLS LAST, photo_index ASC, scraped_at DESC
 LIMIT %d;
 """
 ON_SALE_SQL = """

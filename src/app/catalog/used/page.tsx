@@ -10,6 +10,7 @@ import {
 import CatalogFilters from "./CatalogFilters";
 import CatalogCard from "./CatalogCard";
 import { catalogNoScriptForm } from "@/lib/catalog-noscript";
+import { formatCarCount } from "@/lib/format";
 type Props = { searchParams: Promise<QueryInput> };
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const filters = await normalizeCatalogFilters(parseFilters(await searchParams));
@@ -40,7 +41,7 @@ export default async function UsedCatalogPage({ searchParams }: Props) {
         <div className="mb-5">
           <h1 className="font-heading text-2xl font-bold text-white">Авто с пробегом из Китая</h1>
           <p className="mt-1 min-h-5 font-body text-sm tabular-nums text-gray-400">
-            {list.total.toLocaleString("ru")} автомобилей
+            {formatCarCount(list.total)}
           </p>
         </div>
         <CatalogFilters filters={current} initialFacets={facets} />

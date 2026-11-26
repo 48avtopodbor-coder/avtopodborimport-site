@@ -4,6 +4,7 @@
 import os
 import psycopg2
 from car_titles import source_series
+from catalog_age import NOT_AGED_OUT_SQL
 from psycopg2.extras import execute_values
 from collections import Counter
 
@@ -14,7 +15,10 @@ def main():
     ) as con:
         with con.cursor() as cur:
             cur.execute(
-                "SELECT c.brand_ru,b.slug,c.model,c.series_name,c.city,c.brand_id,c.model_name,t.city_cn FROM cars c LEFT JOIN brands b ON b.id=c.brand_id LEFT JOIN city_translations t ON t.city_cn=c.city WHERE c.is_active=1 AND c.price_cny>0"
+                f"""SELECT c.brand_ru,b.slug,c.model,c.series_name,c.city,c.brand_id,c.model_name,t.city_cn
+                    FROM cars c LEFT JOIN brands b ON b.id=c.brand_id
+                    LEFT JOIN city_translations t ON t.city_cn=c.city
+                    WHERE c.is_active=1 AND c.price_cny>0 AND {NOT_AGED_OUT_SQL}"""
             )
             terms = Counter()
             for brand, slug, model, series, city, brand_id, model_name, city_cn in cur:
