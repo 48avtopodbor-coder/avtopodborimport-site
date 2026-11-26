@@ -10,8 +10,11 @@
 
 --dry-run  только проверить источник: путь, дата, число строк, нужные столбцы.
 --force    импортировать, даже если копия не менялась.
+--allow-mass-delete  разрешить удаление выше порога и повторную обработку той же копии.
 --normalize-photo-links  исправить ссылки у активных машин без локального главного фото.
                         С --dry-run только посчитать объявления для исправления.
+
+Код 3 означает, что импорт выполнен, но предохранитель пропустил удаление.
 """
 import fcntl
 import json
@@ -33,6 +36,8 @@ PG_DSN = os.environ.get(
 LOCK_PATH = "/tmp/import_cars.lock"
 # Дата копии, которую уже перенесли (домашняя папка postgres)
 STATE_PATH = os.environ.get("IMPORT_STATE", "/var/lib/postgresql/import_cars.last")
+SOLD_DELETE_BLOCKED = "sold-delete-blocked"
+SOLD_DELETE_BLOCKED_EXIT = 3
 BATCH = 1000
 SOURCE_PHOTO_URL = re.compile(r"""https://(?:[0-9a-z-]+\.)+autoimg\.cn/[^\s"'\\]+""")
 
@@ -191,14 +196,19 @@ def copy_table(sq, cur, sql, src_cols, table, title_catalog=None, active_only=Fa
 
 
 def main():
+    with open(LOCK_PATH, "w") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            sys.exit("импорт уже идёт — пропуск")
+        return run_import()
+
+
+def run_import():
     dry = "--dry-run" in sys.argv
     force = "--force" in sys.argv
+    allow_mass_delete = "--allow-mass-delete" in sys.argv
     published = "--published" in sys.argv
-    lock = open(LOCK_PATH, "w")
-    try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        sys.exit("импорт уже идёт — пропуск")
 
     if "--normalize-photo-links" in sys.argv:
         normalize_saved_photo_links(dry)
@@ -213,29 +223,35 @@ def main():
     print(f"{time.strftime('%Y-%m-%d %H:%M')} источник {SQLITE_PATH} от {stamp}: "
           f"машин {n_cars} (в продаже с ценой {n_active}), комплектаций {n_specs}")
     if dry:
+        sq.close()
         print("проверка источника: ok, в базу сайта ничего не записано")
         return
     if not n_cars or not n_active:
+        sq.close()
         sys.exit("пустая копия или нет активных машин — импорт и удаление отменены")
 
     try:
         with open(STATE_PATH) as state:
-            last = state.read().strip()
+            last, _, last_result = state.read().strip().partition("\n")
     except OSError:
-        last = ""
-    if last == identity and not force:
+        last = last_result = ""
+    if last == identity and not (force or allow_mass_delete):
+        sq.close()
+        if last_result == SOLD_DELETE_BLOCKED:
+            print("ПРЕДОХРАНИТЕЛЬ: эта копия уже импортирована с пропуском удаления")
+            return SOLD_DELETE_BLOCKED_EXIT
         print("копия не менялась с прошлого импорта — пропуск")
         return
 
     import psycopg2
+    from sold_cars import remove_confirmed
     pg = psycopg2.connect(PG_DSN)
     try:
         with pg, pg.cursor() as cur:  # одна транзакция: сайт видит либо старые данные, либо новые
+            removed = remove_confirmed(sq, cur, allow_mass_delete=allow_mass_delete)
             title_catalog = load_title_catalog(cur)
             s = copy_table(sq, cur, spec_upsert_sql(), SPEC_SRC, "specs")
             c = copy_table(sq, cur, car_upsert_sql(), CAR_COLS, "cars", title_catalog, active_only=True)
-            from sold_cars import remove_confirmed
-            removed = remove_confirmed(sq, cur)
             cur.execute("SELECT count(*), count(*) FILTER (WHERE is_active = 1 AND price_cny > 0) FROM cars")
             site_total, site_active = cur.fetchone()
     finally:
@@ -243,11 +259,16 @@ def main():
         sq.close()
     from refresh_catalog_queue import main as refresh_catalog_queue
     refresh_catalog_queue()
-    with open(STATE_PATH, "w") as f:
-        f.write(identity + "\n")
+    temporary_state = STATE_PATH + ".tmp"
+    with open(temporary_state, "w") as f:
+        result = SOLD_DELETE_BLOCKED + "\n" if removed is None else ""
+        f.write(identity + "\n" + result)
+    os.replace(temporary_state, STATE_PATH)
+    deletion = "удаление снятых пропущено" if removed is None else f"удалено снятых {removed}"
     print(f"готово за {time.time() - t0:.0f} с: комплектаций {s}, машин {c}; "
-          f"на сайте машин {site_total}, в продаже с ценой {site_active}; удалено снятых {removed}")
+          f"на сайте машин {site_total}, в продаже с ценой {site_active}; {deletion}")
+    return SOLD_DELETE_BLOCKED_EXIT if removed is None else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

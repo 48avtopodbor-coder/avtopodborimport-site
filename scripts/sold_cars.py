@@ -1,9 +1,12 @@
 """Queue file cleanup in the same transaction that removes confirmed inactive cars."""
+from decimal import Decimal, InvalidOperation
 import hashlib
 import json
+import os
 import re
 
 ID_RE = re.compile(r"[0-9A-Za-z_-]{1,40}\Z")
+SOLD_DELETE_MIN_LIMIT = 300
 
 
 def cache_keys(*values):
@@ -21,7 +24,8 @@ def cache_keys(*values):
     return keys
 
 
-def remove_confirmed(sq, cur):
+def remove_confirmed(sq, cur, *, allow_mass_delete=False):
+    """Return the number deleted, or None if the safeguard blocked deletion."""
     from psycopg2.extras import execute_values, Json
     ids = [str(row[0]) for row in sq.execute("SELECT listing_id FROM cars WHERE is_active=0")]
     if not ids:
@@ -32,11 +36,28 @@ def remove_confirmed(sq, cur):
     execute_values(cur, "INSERT INTO confirmed_sold_ids VALUES %s", [(value,) for value in ids])
     cur.execute("""SELECT c.listing_id,c.photos,c.images FROM cars c
         JOIN confirmed_sold_ids s ON s.listing_id=c.listing_id::text FOR UPDATE OF c""")
-    jobs = [(str(lid), Json(sorted(cache_keys(photos, images)))) for lid, photos, images in cur.fetchall()]
-    if jobs:
-        execute_values(cur, """INSERT INTO sold_car_cleanup(listing_id,cache_keys) VALUES %s
-            ON CONFLICT(listing_id) DO UPDATE SET
-            cache_keys=sold_car_cleanup.cache_keys || EXCLUDED.cache_keys,
-            queued_at=now(),cleaned_at=NULL""", jobs)
-    cur.execute("DELETE FROM cars c USING confirmed_sold_ids s WHERE c.listing_id::text=s.listing_id")
+    matching = cur.fetchall()
+    if not matching:
+        return 0
+    if not allow_mass_delete:
+        try:
+            percent = Decimal(os.environ.get("SOLD_DELETE_MAX_PERCENT", "5"))
+        except InvalidOperation as error:
+            raise ValueError("SOLD_DELETE_MAX_PERCENT должен быть числом от 0 до 100") from error
+        if not percent.is_finite() or not 0 <= percent <= 100:
+            raise ValueError("SOLD_DELETE_MAX_PERCENT должен быть числом от 0 до 100")
+        cur.execute("SELECT count(*) FROM cars WHERE is_active = 1")
+        active = cur.fetchone()[0]
+        limit = max(SOLD_DELETE_MIN_LIMIT, int(active * percent / 100))
+        if len(matching) > limit:
+            print(f"ПРЕДОХРАНИТЕЛЬ: удаление пропущено. К удалению {len(matching)}, активных машин "
+                  f"на сайте {active}, порог {limit} (минимум {SOLD_DELETE_MIN_LIMIT}, "
+                  f"настройка {percent}%).", flush=True)
+            return None
+    jobs = [(str(lid), Json(sorted(cache_keys(photos, images)))) for lid, photos, images in matching]
+    execute_values(cur, """INSERT INTO sold_car_cleanup(listing_id,cache_keys) VALUES %s
+        ON CONFLICT(listing_id) DO UPDATE SET
+        cache_keys=sold_car_cleanup.cache_keys || EXCLUDED.cache_keys,
+        queued_at=now(),cleaned_at=NULL""", jobs)
+    cur.execute("DELETE FROM cars WHERE listing_id::text = ANY(%s)", ([lid for lid, _ in jobs],))
     return cur.rowcount

@@ -24,6 +24,7 @@ import time
 from loguru import logger
 import che168_api as api
 from database import init_db, get_conn
+from sold_status import FailedResponses, is_sold_response
 
 COLORS = [("香槟", "шампань"), ("咖啡", "коричневый"), ("黑", "чёрный"), ("白", "белый"),
           ("灰", "серый"), ("银", "серебристый"), ("蓝", "синий"), ("红", "красный"),
@@ -232,20 +233,14 @@ def save(listing_id, fields: dict, done=True):
         conn.commit()
 
 
-_odd = [0]
-
-
-def handle(listing_id, spec_id) -> str:
+def handle(listing_id, spec_id, *, failed_responses=None) -> str:
     info, rc, msg = api.car_info(listing_id)
-    if info is None:
-        if rc is None:
-            return "fail"
-        if rc == 99999 or any(w in msg for w in ("下架", "不存在", "删除", "已售")):
+    if rc != 0 or not info:
+        if is_sold_response(rc, msg):
             save(listing_id, {"is_active": 0})
             return "sold"
-        _odd[0] += 1
-        if _odd[0] <= 3:
-            logger.warning("   {}: ответ {} {}", listing_id, rc, msg[:60])
+        reporter = failed_responses if failed_responses is not None else FailedResponses(logger)
+        reporter.log(listing_id, rc, msg)
         return "fail"
 
     spec_id = str(info.get("specid") or spec_id or "") or None
@@ -304,6 +299,7 @@ def fetch_details(limit=None, since=None, minutes=None) -> dict:
     logger.info("Цвет, фото и параметры: {} машин", len(rows))
     deadline = time.time() + minutes * 60 if minutes else None
     cnt = {"ok": 0, "noparams": 0, "sold": 0, "fail": 0}
+    failed_responses = FailedResponses(logger)
     fails_in_row = waits = 0
     for i, (listing_id, spec_id) in enumerate(rows, 1):
         if deadline and time.time() > deadline:
@@ -321,7 +317,7 @@ def fetch_details(limit=None, since=None, minutes=None) -> dict:
             waits += 1
             logger.warning("   жду конца паузы API до {}", _hhmm(until))
             time.sleep(max(0, until - time.time()) + 5)
-        status = handle(listing_id, spec_id)
+        status = handle(listing_id, spec_id, failed_responses=failed_responses)
         cnt[status] += 1
         fails_in_row = fails_in_row + 1 if status == "fail" else 0
         if fails_in_row >= 20:

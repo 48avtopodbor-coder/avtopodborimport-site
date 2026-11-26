@@ -47,15 +47,19 @@ mv -f "$temporary" cars.db
 ls -lh cars.db | awk '{print "готово:", $5, $9}'
 
 # Почасовой запуск остаётся повторной попыткой, если этот импорт не прошёл.
+import_status=0
 sudo -u postgres env SQLITE_PATH="$snapshot" \
-  python3 /opt/avtopodborimport/import_cars.py --published
+  python3 /opt/avtopodborimport/import_cars.py --published || import_status=$?
 
-# Confirmed inactive listings were removed transactionally by the importer.
-# Both daily imports clean files; the timer retries when a photo batch owns the lock.
-python3 /opt/avtopodborimport/cleanup_sold_photos.py --apply
-if ! ssh -o BatchMode=yes -o ConnectTimeout=15 hosting \
-  'cd /home/c/cc14862/che168 && python3 cleanup_collector_photos.py --apply'; then
-  echo "очистка старых фото сборщика не прошла; повтор при следующей копии"
+if [ "$import_status" -eq 0 ]; then
+  # Both daily imports clean files; the timer retries when a photo batch owns the lock.
+  python3 /opt/avtopodborimport/cleanup_sold_photos.py --apply
+  if ! ssh -o BatchMode=yes -o ConnectTimeout=15 hosting \
+    'cd /home/c/cc14862/che168 && python3 cleanup_collector_photos.py --apply'; then
+    echo "очистка старых фото сборщика не прошла; повтор при следующей копии"
+  fi
+elif [ "$import_status" -ne 3 ]; then
+  exit "$import_status"
 fi
 
 if [ -f /opt/avtopodborimport/translate_seller_descriptions.py ] && \
@@ -69,3 +73,4 @@ fi
 if ! sh /opt/avtopodborimport/run_electric_catalog_audit.sh; then
   echo "проверка электромобилей завершилась с ошибками; см. отчёт electric-catalog-audit.json"
 fi
+exit "$import_status"

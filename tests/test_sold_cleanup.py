@@ -1,16 +1,19 @@
 import hashlib
-from contextlib import closing
+from contextlib import closing, redirect_stdout
+import io
 import os
 from pathlib import Path
 import sqlite3
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import cleanup_sold_photos as local
 from cleanup_collector_photos import cleanup
+from sold_cars import remove_confirmed
 
 
 class SoldCleanupTests(unittest.TestCase):
@@ -73,3 +76,53 @@ class SoldCleanupTests(unittest.TestCase):
                 self.assertTrue((base / name).exists())
             with closing(sqlite3.connect(database)) as con:
                 self.assertEqual(con.execute("SELECT count(*) FROM cars").fetchone()[0], 3)
+
+
+class SoldDeletionTests(unittest.TestCase):
+    def setUp(self):
+        self.source = sqlite3.connect(":memory:")
+        self.addCleanup(self.source.close)
+        self.source.execute("CREATE TABLE cars(listing_id text, is_active integer)")
+        self.source.executemany("INSERT INTO cars VALUES (?, 0)", [(str(n),) for n in range(800)])
+        self.cursor = Mock()
+        self.execute_values = Mock()
+        extras = SimpleNamespace(execute_values=self.execute_values, Json=lambda value: value)
+        modules = patch.dict(sys.modules, {"psycopg2.extras": extras})
+        modules.start()
+        self.addCleanup(modules.stop)
+
+    def remove(self, matches, active, **kwargs):
+        self.cursor.fetchall.return_value = [(str(n), None, None) for n in range(matches)]
+        self.cursor.fetchone.return_value = (active,)
+        self.cursor.rowcount = matches
+        return remove_confirmed(self.source, self.cursor, **kwargs)
+
+    def assert_no_cleanup_or_delete(self):
+        self.assertEqual(self.execute_values.call_count, 1)  # candidate IDs only
+        self.assertFalse(any("DELETE FROM cars" in call.args[0] for call in self.cursor.execute.call_args_list))
+
+    def test_removes_matching_rows_at_limit_and_ignores_absent_ids(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(self.remove(matches=400, active=8019), 400)
+        self.assertEqual(len(self.execute_values.call_args.args[2]), 400)
+        self.assertIn("sold_car_cleanup", self.execute_values.call_args.args[1])
+        self.assertEqual(self.cursor.execute.call_args.args[1], ([str(n) for n in range(400)],))
+
+    def test_blocks_above_floor_without_enqueuing_cleanup(self):
+        log = io.StringIO()
+        with patch.dict(os.environ, {}, clear=True), redirect_stdout(log):
+            self.assertIsNone(self.remove(matches=301, active=1000))
+        self.assert_no_cleanup_or_delete()
+        self.assertIn("ПРЕДОХРАНИТЕЛЬ", log.getvalue())
+        self.assertIn("К удалению 301, активных машин на сайте 1000, порог 300", log.getvalue())
+
+    def test_fractional_percent_is_configurable(self):
+        with patch.dict(os.environ, {"SOLD_DELETE_MAX_PERCENT": "3.5"}), redirect_stdout(io.StringIO()):
+            self.assertIsNone(self.remove(matches=351, active=10010))
+        self.assert_no_cleanup_or_delete()
+
+    def test_manual_override_allows_mass_deletion(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(self.remove(matches=500, active=1000, allow_mass_delete=True), 500)
+        self.assertEqual(len(self.execute_values.call_args.args[2]), 500)
+        self.assertIn("DELETE FROM cars", self.cursor.execute.call_args.args[0])

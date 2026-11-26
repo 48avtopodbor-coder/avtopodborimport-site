@@ -21,7 +21,7 @@ class DetailsRecoveryTests(unittest.TestCase):
         path = Path(__file__).parents[1] / 'scripts/collector/details.py'
         spec = importlib.util.spec_from_file_location('collector_details_under_test', path)
         self.module = importlib.util.module_from_spec(spec)
-        with patch.dict(sys.modules, modules):
+        with patch.object(sys, 'path', [str(path.parent), *sys.path]), patch.dict(sys.modules, modules):
             spec.loader.exec_module(self.module)
 
     def tearDown(self):
@@ -107,6 +107,26 @@ class DetailsRecoveryTests(unittest.TestCase):
         self.assertEqual(save.call_args.args[1]["spec_id"], "99")
         self.assertEqual(save.call_args.args[1]["model"], "海豚 2023款")
         self.assertEqual(save.call_args.args[1]["series_name"], "海豚")
+
+    def test_failed_card_responses_do_not_change_listing_and_log_first_three(self):
+        self.api.car_info = Mock(side_effect=[
+            (None, 404, "参数不存在"),
+            (None, 1, "删除失败"),
+            (None, None, None),
+            ({"carname": "stale"}, 5, "已售查询失败"),
+            (None, 99999, None),
+        ])
+        failures = self.module.FailedResponses(self.module.logger)
+        with patch.object(self.module, "save") as save:
+            for listing in ("1", "2", "3", "4"):
+                self.assertEqual(self.module.handle(listing, None, failed_responses=failures), "fail")
+            save.assert_not_called()
+            self.assertEqual(self.module.handle("5", None, failed_responses=failures), "sold")
+            save.assert_called_once_with("5", {"is_active": 0})
+        warnings = self.module.logger.warning.call_args_list
+        self.assertEqual([call.args[1:] for call in warnings], [
+            ("1", 404, "参数不存在"), ("2", 1, "删除失败"), ("3", None, None),
+        ])
 
     def test_ev_cache_without_range_is_not_reused(self):
         row = {"fuel": "электро", "drive": "полный", "power_hp": 400, "params_json": "[]"}
