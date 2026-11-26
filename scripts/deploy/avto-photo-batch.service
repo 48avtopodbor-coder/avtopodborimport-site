@@ -1,5 +1,5 @@
 [Unit]
-Description=Backfill four local photos per car
+Description=Backfill two local photos per car
 After=network-online.target postgresql.service
 
 [Service]

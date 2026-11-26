@@ -4,20 +4,99 @@
 import hashlib
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import os
 from pathlib import Path
+import re
 import shlex
 import shutil
+import stat
 import subprocess
 import threading
 import time
 from urllib.parse import parse_qs, urlsplit
 
 CACHE = Path("/opt/avtopodborimport/photo-cache")
+CACHE_LIMIT_BYTES = 1_000_000_000
+CACHE_KEY_RE = re.compile(r"[0-9a-f]{64}")
+DISK_RESERVE_BYTES = 4 * 1024**3
 SLOTS = threading.BoundedSemaphore(2)
 MASTER_LOCK = threading.Lock()
 SSH_SOCKET = "/run/avto-photo-relay-ssh"
 CONNECT_AFTER = 0.0
 BRIDGE_STATE = Path("/srv/che168/pc-bridge")
+
+
+class PhotoCache:
+    def __init__(self, directory, limit):
+        self.directory = directory
+        self.limit = limit
+        self.lock = threading.Lock()
+        directory.mkdir(parents=True, exist_ok=True)
+        self.block_size = os.statvfs(directory).f_frsize
+        self.used = self.trim(limit)
+
+    def trim(self, limit):
+        entries = []
+        with os.scandir(self.directory) as files:
+            for entry in files:
+                if not CACHE_KEY_RE.fullmatch(entry.name):
+                    continue
+                try:
+                    info = entry.stat(follow_symlinks=False)
+                except FileNotFoundError:
+                    continue
+                if stat.S_ISREG(info.st_mode):
+                    entries.append((info.st_mtime_ns, entry.path, info.st_blocks * 512))
+        used = sum(size for _, _, size in entries)
+        if used <= limit:
+            return used
+        for _, path, size in sorted(entries):
+            Path(path).unlink(missing_ok=True)
+            used -= size
+            if used <= limit:
+                break
+        return used
+
+    def read(self, key):
+        try:
+            with (self.directory / key).open("rb") as photo:
+                body = photo.read()
+                try:
+                    os.utime(photo.fileno(), None)
+                except OSError:
+                    pass
+                return body
+        except FileNotFoundError:
+            return None
+
+    def store(self, key, body):
+        blocks = (len(body) + self.block_size - 1) // self.block_size
+        required = blocks * self.block_size
+        if required > self.limit:
+            return
+        target = self.directory / key
+        with self.lock:
+            if target.exists():
+                return
+            if self.used + required > self.limit:
+                self.used = self.trim(min(self.limit - required, self.limit * 9 // 10))
+            if shutil.disk_usage(self.directory).free < DISK_RESERVE_BYTES + required:
+                return
+            temporary = target.with_suffix(f".{threading.get_ident()}.tmp")
+            try:
+                temporary.write_bytes(body)
+                allocated = temporary.stat().st_blocks * 512
+                if self.used + allocated > self.limit:
+                    return
+                temporary.replace(target)
+                self.used += allocated
+            finally:
+                temporary.unlink(missing_ok=True)
+
+    def refresh(self):
+        """Account for files written by the optional workstation bridge."""
+        with self.lock:
+            self.used = self.trim(self.limit)
 
 
 def workstation_alive():
@@ -129,29 +208,32 @@ class Handler(BaseHTTPRequestHandler):
         if urlsplit(self.path).path != "/api/img" or not allowed(url):
             self.send_error(400)
             return
-        target = CACHE / hashlib.sha256(url.encode()).hexdigest()
-        if not target.exists():
-            if shutil.disk_usage(CACHE).free < 4 * 1024**3:
-                self.send_error(507)
-                return
-            key = target.name
+        key = hashlib.sha256(url.encode()).hexdigest()
+        cache = self.server.photo_cache
+        body = cache.read(key)
+        if body is None:
             enqueue_workstation(url, key)
             if workstation_alive():
                 deadline = time.monotonic() + 45
-                while not target.exists() and time.monotonic() < deadline:
+                while body is None and time.monotonic() < deadline:
+                    body = cache.read(key)
+                    if body is not None:
+                        cache.refresh()
+                        break
                     time.sleep(0.2)
-                if not target.exists():
+                if body is None:
                     self.send_response(503)
                     self.send_header("Retry-After", "30")
                     self.end_headers()
                     return
-            if target.exists():
-                return self.serve_photo(target)
+            if body is not None:
+                return self.serve_photo(body)
             if not SLOTS.acquire(timeout=20):
                 self.send_error(503)
                 return
             try:
-                if not target.exists():
+                body = cache.read(key)
+                if body is None:
                     if not ensure_master():
                         self.send_response(503)
                         self.send_header("Retry-After", "120")
@@ -180,24 +262,20 @@ class Handler(BaseHTTPRequestHandler):
                     if result.returncode or not image_type(result.stdout):
                         self.send_error(502)
                         return
-                    temporary = target.with_suffix(
-                        "." + str(threading.get_ident()) + ".tmp"
-                    )
+                    body = result.stdout
                     try:
-                        temporary.write_bytes(result.stdout)
-                        temporary.replace(target)
-                    finally:
-                        temporary.unlink(missing_ok=True)
+                        cache.store(key, body)
+                    except OSError as error:
+                        self.log_error("Photo cache write failed: %s", error)
             except (subprocess.TimeoutExpired, OSError):
                 self.send_error(502)
                 return
             finally:
                 SLOTS.release()
-        self.serve_photo(target)
+        self.serve_photo(body)
 
-    def serve_photo(self, target):
+    def serve_photo(self, body):
         try:
-            body = target.read_bytes()
             ctype = image_type(body)
             if not ctype:
                 self.send_error(502)
@@ -214,5 +292,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    CACHE.mkdir(parents=True, exist_ok=True)
-    ThreadingHTTPServer(("127.0.0.1", 3011), Handler).serve_forever()
+    photo_cache = PhotoCache(CACHE, CACHE_LIMIT_BYTES)
+    with ThreadingHTTPServer(("127.0.0.1", 3011), Handler) as server:
+        server.photo_cache = photo_cache
+        server.serve_forever()

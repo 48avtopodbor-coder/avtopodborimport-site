@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Локальные первые четыре фото машин в продаже.
+"""Локальные первые два фото машин в продаже.
 
 Новый сервер не может подключиться к серверам фото в Китае, а старый хостинг
 может. Поэтому хостинг последовательно получает изображения и передаёт их
@@ -295,7 +295,7 @@ def save_failed(failed):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Первые четыре фото машин через старый хостинг")
+    ap = argparse.ArgumentParser(description="Первые два фото машин через старый хостинг")
     ap.add_argument("--limit", type=int, default=2000, help="сколько фото за запуск (2000)")
     ap.add_argument("--minutes", type=float, default=40, help="не дольше стольких минут (40)")
     ap.add_argument("--pause", type=float, default=0.3, help="пауза между фото, с (0.3)")
@@ -313,16 +313,18 @@ def main():
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
+        lock.close()
         print(f"{now()} предыдущий запуск ещё идёт, пропуск")
         return
 
     pause_till = cooldown_until()
     if time.time() < pause_till and not args.dry_run:
+        lock.close()
         till = datetime.fromtimestamp(pause_till).strftime("%H:%M")
         print(f"{now()} пауза после отказа Che168 до {till}, пропуск")
         return
 
-    index_filter = " AND photo_index = %d" % args.photo_index if args.photo_index else ""
+    index_filter = " AND photo_index = %d" % args.photo_index if args.photo_index else " AND photo_index <= 2"
     missing = int(psql(COUNT_SQL.replace("WHERE url IS NOT NULL AND local_path IS NULL;",
                                          "WHERE url IS NOT NULL AND local_path IS NULL" + index_filter + ";")).strip() or 0)
     failed = load_failed()
@@ -349,11 +351,13 @@ def main():
             have.append((listing_id, photo_index, path))
         else:
             todo.append((listing_id, photo_index, url))
-    print(f"{now()} первые четыре фото: без локального файла {missing}, "
+    selection = f"фото №{args.photo_index}" if args.photo_index else "первые два фото"
+    print(f"{now()} {selection}: без локального файла {missing}, "
           f"в очереди {len(have) + len(todo)}, файл уже есть у {len(have)}, скачать {len(todo)}"
           + (f", отложено после неудачи {skipped}" if skipped else ""), flush=True)
 
     if args.dry_run:
+        lock.close()
         if todo:
             print(f"первое в очереди: {todo[0][0]} фото {todo[0][1]} {todo[0][2]}")
         if time.time() < pause_till:
@@ -363,6 +367,7 @@ def main():
 
     save(have)
     if not todo:
+        lock.close()
         print(f"{now()} скачивать нечего")
         return
 

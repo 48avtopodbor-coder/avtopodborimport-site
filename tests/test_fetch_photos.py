@@ -10,7 +10,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import fetch_photos as photos
 
 
-class FourthPhotoTests(unittest.TestCase):
+class FetchPhotosTests(unittest.TestCase):
+    def test_default_selects_only_first_and_second_photos(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                patch.object(photos, "LOCK_PATH", str(Path(directory) / "lock")),
+                patch.object(photos, "psql", side_effect=["0", ""]) as query,
+                patch.dict(photos.os.environ, {"PHOTOS_FETCH_CMD": "test-transport"}),
+                patch.object(sys, "argv", ["fetch_photos", "--dry-run"]),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                photos.main()
+        self.assertEqual(query.call_count, 2)
+        for call in query.call_args_list:
+            self.assertIn("AND photo_index <= 2", call.args[0])
+
     def test_fourth_photo_stream_preserves_large_original_and_earlier_files(self):
         # Exercise the real SSH/tar program locally with a deterministic HTTP source.
         transport = '''import http.client,sys
