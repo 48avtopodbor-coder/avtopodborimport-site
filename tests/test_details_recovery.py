@@ -99,6 +99,14 @@ class DetailsRecoveryTests(unittest.TestCase):
         self.assertEqual(self.module.spec_info('42', '100')['power_hp'], 400)
         self.api.car_params.assert_not_called()
 
+    def test_cached_erev_power_is_recalculated_without_api(self):
+        fixture = json.loads((Path(__file__).parent / "fixtures/electrified-power.json").read_text(encoding="utf-8"))[0]
+        self.db.execute("INSERT INTO specs (spec_id,full,fuel,drive,power_hp,params_json) VALUES ('42',1,?,'полный',131,?)",
+                        (fixture["fuel"], json.dumps(fixture["params_json"])))
+        self.assertEqual(self.module.spec_info('42', '100')['power_hp'], 326)
+        self.assertEqual(self.db.execute("SELECT power_hp FROM specs WHERE spec_id='42'").fetchone()[0], 326)
+        self.api.car_params.assert_not_called()
+
     def test_current_api_spec_id_takes_priority_over_stale_listing_cache(self):
         self.api.car_info = Mock(return_value=({"specid": 99, "carname": "海豚 2023款", "seriesname": "海豚", "colorname": "白色"}, 0, ""))
         with patch.object(self.module, "spec_info", return_value={"fuel": "электро"}) as get_spec, patch.object(self.module, "save") as save:

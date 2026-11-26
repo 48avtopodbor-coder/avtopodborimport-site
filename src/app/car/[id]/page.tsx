@@ -6,6 +6,7 @@ import { displayValue, firstDisplayValue } from "@/lib/format";
 import OriginalListingLink from "@/components/car/OriginalListingLink";
 import CarGallery from "@/components/car/CarGallery";
 import { electricRange } from "@/lib/electric-range";
+import { powerRows } from "@/lib/power";
 import { modelEquipment } from "@/lib/equipment";
 import CarEquipment from "@/components/car/CarEquipment";
 import { sellerDictionaryRevision } from "@/lib/seller-description";
@@ -129,6 +130,11 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
   const equipment = modelEquipment(spec?.params_json);
   const name = formatCarFullName(car);
   const range = electricRange(spec?.params_json, firstDisplayValue(car.fuel, spec?.fuel));
+  const powers = powerRows(
+    spec?.params_json,
+    firstDisplayValue(spec?.fuel, car.fuel),
+    spec?.power_hp,
+  );
   const sourceDescription = car.description?.trim();
   const sellerDescription = sourceDescription
     ? {
@@ -279,7 +285,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
                     { label: "Топливо", value: displayValue(spec?.fuel) },
                     { label: "Привод", value: displayValue(spec?.drive) },
                     { label: "КПП", value: displayValue(spec?.gearbox) },
-                    { label: "Мощность", value: spec?.power_hp ? `${spec.power_hp} л.с.` : null },
+                    ...powers,
                     { label: "Запас хода", value: range },
                     {
                       label: "Объём двигателя",
