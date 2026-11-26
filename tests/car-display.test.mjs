@@ -24,6 +24,36 @@ function load(path, imports = {}) {
 }
 const titles = load("../src/lib/car-title.ts");
 const { electricRange } = load("../src/lib/electric-range.ts");
+const { specPower, powerRows } = load("../src/lib/power.ts");
+const powerFixtures = JSON.parse(
+  fs.readFileSync(new URL("./fixtures/electrified-power.json", import.meta.url), "utf8"),
+);
+
+test("power rows use explicit Che168 motor, engine and system fields", () => {
+  for (const entry of powerFixtures) {
+    assert.deepEqual({ ...specPower(JSON.stringify(entry.params_json)) }, {
+      engineHp: entry.engine_hp,
+      motorHp: entry.motor_hp,
+      totalHp: entry.total_hp,
+    }, entry.spec_id);
+  }
+
+  const displayed = (entry) => Object.fromEntries(
+    powerRows(entry.params_json, entry.fuel, entry.engine_hp)
+      .filter(({ value }) => value)
+      .map(({ label, value }) => [label, value]),
+  );
+  const [erev, phev, hev, ev, missingTotal] = powerFixtures;
+  assert.deepEqual(displayed(erev), { "Мощность электромоторов": "326 л.с." });
+  assert.deepEqual(displayed(phev), { "Суммарная мощность": "408 л.с.", ДВС: "252 л.с.", Электромотор: "163 л.с." });
+  assert.deepEqual(displayed(hev), { "Суммарная мощность": "218 л.с.", ДВС: "178 л.с.", Электромотор: "120 л.с." });
+  assert.deepEqual(displayed(ev), { "Мощность электромоторов": "218 л.с." });
+  assert.deepEqual(displayed(missingTotal), { ДВС: "139 л.с.", Электромотор: "218 л.с." });
+  assert.equal(specPower(ev.params_json.slice(1)).motorHp, 218);
+  assert.equal(powerRows("bad json", "гибрид EREV", 131)[0].value, null);
+  assert.deepEqual({ ...powerRows(null, "Бензин", 150)[0] }, { label: "Мощность", value: "150 л.с." });
+});
+
 const params = (...entries) => [["基本参数", entries]];
 const dolphin = {
   listing_id: "60613575",

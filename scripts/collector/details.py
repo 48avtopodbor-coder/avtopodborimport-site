@@ -24,6 +24,7 @@ import time
 from loguru import logger
 import che168_api as api
 from database import init_db, get_conn
+from power import ELECTRIFIED_FUELS, electrified_power_hp
 from sold_status import FailedResponses, is_sold_response
 
 COLORS = [("香槟", "шампань"), ("咖啡", "коричневый"), ("黑", "чёрный"), ("白", "белый"),
@@ -113,7 +114,9 @@ def gearbox_ru(*values):
     return "механика" if "手动" in v else "автомат"
 
 
-def power_hp(p: dict):
+def power_hp(p: dict, groups, fuel):
+    if (fuel or "").strip().casefold() in ELECTRIFIED_FUELS:
+        return electrified_power_hp(groups, fuel)
     ps = _num(p.get("最大马力(Ps)")) or _num(p.get("电动机(Ps)"))
     if not ps:
         kw = _num(p.get("最大功率(kW)")) or _num(p.get("电动机总功率(kW)"))
@@ -187,8 +190,13 @@ def spec_info(spec_id, infoid, expected_model=None):
         with get_conn() as conn:
             row = conn.execute("SELECT fuel, drive, gearbox, power_hp, engine_ml, tires, params_text, params_json "
                                "FROM specs WHERE spec_id = ? AND full = 1", (spec_id,)).fetchone()
-        if row and reusable_spec_cache(dict(row), expected_model):
-            return {k: v for k, v in dict(row).items() if k != "params_json"}
+            cached = dict(row) if row else None
+            if cached and reusable_spec_cache(cached, expected_model):
+                corrected = electrified_power_hp(cached.pop("params_json"), cached["fuel"])
+                if corrected is not None and corrected != cached["power_hp"]:
+                    conn.execute("UPDATE specs SET power_hp = ? WHERE spec_id = ?", (corrected, spec_id))
+                    cached["power_hp"] = corrected
+                return cached
     groups = api.car_params(infoid)
     if groups is None:
         return None
@@ -197,13 +205,14 @@ def spec_info(spec_id, infoid, expected_model=None):
         for name, value in items:
             p.setdefault(name, value)
     fuel_src = p.get("能源类型") or p.get("燃料形式")
+    fuel = fuel_ru(fuel_src)
     summary = [("能源类型", fuel_src), ("发动机", p.get("发动机")), ("最大马力(Ps)", p.get("最大马力(Ps)")),
                ("变速箱", p.get("变速箱")), ("驱动方式", p.get("驱动方式")), ("轮胎", tires_text(p))]
     s = {
-        "fuel": fuel_ru(fuel_src),
+        "fuel": fuel,
         "drive": drive_ru(p.get("驱动方式")),
         "gearbox": gearbox_ru(p.get("变速箱类型"), p.get("变速箱")),
-        "power_hp": power_hp(p),
+        "power_hp": power_hp(p, groups, fuel),
         "engine_ml": engine_ml(p),
         "tires": tires_text(p),
         "params_text": "; ".join("{}: {}".format(k, v) for k, v in summary if v) or None,
