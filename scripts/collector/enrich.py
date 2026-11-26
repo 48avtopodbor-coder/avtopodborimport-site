@@ -13,6 +13,7 @@ import urllib.request
 
 from loguru import logger
 from database import init_db, cars_to_enrich, update_details, get_conn
+from sold_status import FailedResponses, is_sold_response
 
 API = "https://apipcmusc.che168.com/v1/car/getcarinfo?_appid=2sc.pc&infoid="
 HEADERS = {
@@ -29,11 +30,6 @@ def get_info(infoid: str) -> dict:
     req = urllib.request.Request(API + str(infoid), headers=HEADERS)
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read().decode("utf-8"))
-
-
-def is_sold(data: dict) -> bool:
-    """Ответ «该车已下架» (returncode 99999) — машина снята с продажи."""
-    return data.get("returncode") == 99999 or "下架" in str(data.get("message", ""))
 
 
 def details_from(res: dict) -> dict:
@@ -80,36 +76,39 @@ def recheck_from(res: dict) -> dict:
 
 def process(ids: list, title: str, fields_from=details_from) -> dict:
     logger.info("{}: {} машин", title, len(ids))
-    cnt = {"ok": 0, "sold": 0, "empty": 0, "err": 0}
+    cnt = {"ok": 0, "sold": 0, "fail": 0, "err": 0}
+    failed_responses = FailedResponses(logger)
     err_in_row = 0
     for i, infoid in enumerate(ids, 1):
         try:
             data = get_info(infoid)
             res = data.get("result")
-            if data.get("returncode") == 0 and res:
+            rc, msg = data.get("returncode"), data.get("message")
+            if rc == 0 and res:
                 update_details(infoid, fields_from(res))
                 cnt["ok"] += 1
-            elif is_sold(data):
+                err_in_row = 0
+            elif is_sold_response(rc, msg):
                 update_details(infoid, {"is_active": 0})
                 cnt["sold"] += 1
+                err_in_row = 0
             else:
-                cnt["empty"] += 1
-                if cnt["empty"] <= 3:
-                    logger.warning("{}: нет данных, ответ: {}", infoid, str(data)[:150])
-            err_in_row = 0
+                cnt["fail"] += 1
+                err_in_row += 1
+                failed_responses.log(infoid, rc, msg)
         except Exception as e:
             cnt["err"] += 1
             err_in_row += 1
-            logger.warning("{}: {}", infoid, str(e)[:80])
-            if err_in_row >= MAX_ERRORS_IN_ROW:
-                logger.error("{} ошибок подряд — останавливаюсь", err_in_row)
-                break
+            failed_responses.log(infoid, getattr(e, "code", None), str(e))
             time.sleep(5)
+        if err_in_row >= MAX_ERRORS_IN_ROW:
+            logger.error("{} ошибок подряд — останавливаюсь", err_in_row)
+            break
         if i % 200 == 0:
-            logger.info("   {}/{}: ok {ok}, снято с продажи {sold}, без данных {empty}, ошибок {err}",
+            logger.info("   {}/{}: ok {ok}, снято с продажи {sold}, ошибок API {fail}, исключений {err}",
                         i, len(ids), **cnt)
         time.sleep(PAUSE)
-    logger.info("{} завершена: ok {ok}, снято с продажи {sold}, без данных {empty}, ошибок {err}",
+    logger.info("{} завершена: ok {ok}, снято с продажи {sold}, ошибок API {fail}, исключений {err}",
                 title, **cnt)
     return cnt
 
