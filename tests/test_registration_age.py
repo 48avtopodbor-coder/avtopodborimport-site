@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 COLLECTOR = Path(__file__).resolve().parents[1] / "scripts" / "collector"
 with patch.object(sys, "path", [str(COLLECTOR), *sys.path]):
-    from registration_age import customs_registration_bounds, customs_years, in_customs_window, registration_month
+    from registration_age import customs_registration_bounds, customs_years, in_customs_window, registration_month, registration_year_summary
 
 
 class RegistrationAgeTests(unittest.TestCase):
@@ -18,6 +18,31 @@ class RegistrationAgeTests(unittest.TestCase):
         for value in (" 2023-04 ", "2023-4-30", "2023/04/05", "2023.4", "2023年4月", "2023年4月5日", "05.04.2023"):
             with self.subTest(value=value):
                 self.assertEqual(registration_month(value, 2020), date(2023, 4, 1))
+
+    def test_registration_summary_prefers_dates_and_shows_missing_years(self):
+        rows = [("2023-12", 2024), (None, 2023), ("", 2022), (None, None)]
+        summary = registration_year_summary(rows, range(2022, 2026))
+        self.assertEqual(summary, "2022: 1 | 2023: 2 | 2024: 0 | 2025: 0 | неизвестно: 1")
+
+    def test_scraper_splits_every_bucket_from_the_api_range(self):
+        spec = importlib.util.spec_from_file_location("scraper_for_age_test", COLLECTOR / "scraper.py")
+        scraper = importlib.util.module_from_spec(spec)
+        with patch.object(sys, "path", [str(COLLECTOR), *sys.path]), patch.dict(sys.modules, {
+            "che168_api": SimpleNamespace(DATA="data"),
+            "config": SimpleNamespace(TARGET_BRANDS=[], SUBBRAND_RULES=[], MIN_YEAR=2022, MAX_YEAR=2024),
+            "database": SimpleNamespace(init_db=Mock(), save_cars=Mock(return_value=0), get_stats=Mock(), get_conn=Mock()),
+            "details": SimpleNamespace(fetch_details=Mock()),
+            "loguru": SimpleNamespace(logger=Mock()),
+        }):
+            spec.loader.exec_module(scraper)
+        full = ([], scraper.CAP + 1, 21)
+        empty = ([], 0, 1)
+        with patch.object(scraper, "query", side_effect=[full, empty, empty, empty, empty]) as query:
+            scraper.collect_brand({"name_ru": "Toyota"}, 1, "2-5", scraper.MAX_PAGES, scraper.Run())
+        self.assertEqual(
+            [call.args[3]["agerange"] for call in query.call_args_list],
+            ["2-5", "5-5", "4-4", "3-3", "2-2"],
+        )
 
     def test_missing_invalid_and_leap_dates(self):
         for value in (None, "", "2023", "2023-02-29", "2023-13", "2023-04/05", "0000-01", "unknown"):

@@ -1,6 +1,7 @@
 """Month-level registration dates and the rolling customs age window."""
 
 import calendar
+from collections import Counter
 from datetime import date, timedelta
 import re
 
@@ -58,3 +59,19 @@ def in_customs_window(month, today=None):
     oldest, youngest = customs_registration_bounds(today)
     last_day = month.replace(day=calendar.monthrange(month.year, month.month)[1])
     return oldest < month.replace(day=1) and last_day <= youngest
+
+
+def registration_year_summary(rows, expected_years=()):
+    """Summarize years from the registration date, falling back to the stored year."""
+    counts = Counter(dict.fromkeys(expected_years, 0))
+    unknown = 0
+    for first_reg_date, year in rows:
+        month = registration_month(first_reg_date, year)
+        if month is None:
+            unknown += 1
+        else:
+            counts[month.year] += 1
+    parts = [f"{year}: {count}" for year, count in sorted(counts.items())]
+    if unknown:
+        parts.append(f"неизвестно: {unknown}")
+    return " | ".join(parts)
