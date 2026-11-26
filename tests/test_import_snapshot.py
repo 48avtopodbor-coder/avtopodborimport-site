@@ -4,6 +4,7 @@ import io
 import json
 import os
 from collections import Counter
+from datetime import date
 from pathlib import Path
 import sqlite3
 import sys
@@ -28,6 +29,18 @@ def create_database(path):
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_import_derives_registration_month_without_a_brand_mapping(self):
+        for first_reg_date, expected in (("2023/03/17", date(2023, 3, 1)), ("", date(2022, 7, 1))):
+            with self.subTest(first_reg_date=first_reg_date):
+                row = {"listing_id": "123", "year": 2022, "first_reg_date": first_reg_date}
+                source = tuple(row.get(column) for column in import_cars.CAR_COLS)
+                imported = dict(zip(
+                    import_cars.CAR_DST_COLS,
+                    import_cars.enrich_car(source, {}, {}, Counter()),
+                    strict=True,
+                ))
+                self.assertEqual(imported["reg_month"], expected)
+
     def test_import_wraps_legacy_cover_without_overwriting_detail_photos(self):
         cover = "https://2sc2.autoimg.cn/cars/cover.webp"
         gallery = '["https://2sc2.autoimg.cn/cars/detail.webp"]'

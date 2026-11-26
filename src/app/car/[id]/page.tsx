@@ -7,6 +7,7 @@ import OriginalListingLink from "@/components/car/OriginalListingLink";
 import CarGallery from "@/components/car/CarGallery";
 import { electricRange } from "@/lib/electric-range";
 import { powerRows } from "@/lib/power";
+import { CATALOG_AGE_SQL } from "@/lib/catalog-age";
 import { modelEquipment } from "@/lib/equipment";
 import CarEquipment from "@/components/car/CarEquipment";
 import { sellerDictionaryRevision } from "@/lib/seller-description";
@@ -37,6 +38,7 @@ interface Car extends CarTitleData {
   local_photo_3: string | null;
   local_photo_4: string | null;
   scraped_at: string;
+  outside_customs_age: boolean | null;
 }
 
 export async function generateMetadata({
@@ -102,7 +104,8 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               tr.translated_text AS translated_description,
               COALESCE(ct.city_ru, c.city) as city_display,
               ct.distance_km, ct.distance_source,
-              c.photos, c.images, c.local_photo, c.local_photo_2, c.local_photo_3, c.local_photo_4, c.scraped_at
+              c.photos, c.images, c.local_photo, c.local_photo_2, c.local_photo_3, c.local_photo_4, c.scraped_at,
+              NOT ${CATALOG_AGE_SQL} AS outside_customs_age
        FROM cars c
        LEFT JOIN brands b ON b.id = c.brand_id
        LEFT JOIN city_translations ct ON ct.city_cn = c.city
@@ -229,6 +232,13 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
                 </span>
               )}
             </p>
+
+            {car.outside_customs_age && (
+              <p className="mb-5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-body text-sm leading-relaxed text-amber-200">
+                Возраст автомобиля на момент растаможки выходит за пределы 3–5 лет — стоимость
+                растаможки будет выше. Уточните у нас
+              </p>
+            )}
 
             {/* Цена */}
             <div className="bg-graphite-800 rounded-xl p-5 mb-5">

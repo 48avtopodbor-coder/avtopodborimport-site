@@ -2,6 +2,7 @@ import pool from "@/lib/db";
 import type { CarTitleData } from "./car-title";
 import { unstable_cache } from "next/cache";
 import { BODY_NAMES, type CatalogFilters } from "./catalog-filters";
+import { CATALOG_VISIBLE_SQL } from "./catalog-age";
 
 export interface Facet {
   slug: string;
@@ -14,7 +15,11 @@ export interface Facets {
   brands: Facet[];
   models: Facet[];
   bodies: Facet[];
-  ranges: { year: [number, number]; price: [number, number]; mileage: [number, number] };
+  ranges: {
+    year: [number | null, number | null];
+    price: [number, number];
+    mileage: [number, number];
+  };
   priceAvailable: boolean;
 }
 export interface CatalogCar extends CarTitleData {
@@ -34,7 +39,7 @@ export interface CatalogCar extends CarTitleData {
 const FROM = `FROM cars c LEFT JOIN brands b ON b.id=c.brand_id OR (c.brand_id IS NULL AND b.name=c.brand_ru)
  LEFT JOIN catalog_spec_bodies cb ON cb.spec_id=c.spec_id LEFT JOIN specs s ON s.spec_id=c.spec_id`;
 export function catalogWhere(f: CatalogFilters, omit?: "brand" | "model" | "body" | "ranges") {
-  const clauses = ["c.is_active=1", "c.price_cny>0"];
+  const clauses = [CATALOG_VISIBLE_SQL];
   const values: (string | string[] | number)[] = [];
   const bind = (v: string | string[] | number) => {
     values.push(v);
@@ -96,7 +101,7 @@ async function facetsUncached(f: CatalogFilters): Promise<Facets> {
       range.values,
     ),
     pool.query(
-      "SELECT EXISTS(SELECT 1 FROM cars WHERE is_active=1 AND price_cny>0 AND price_rub IS NOT NULL) AS available",
+      `SELECT EXISTS(SELECT 1 FROM cars c WHERE ${CATALOG_VISIBLE_SQL} AND c.price_rub IS NOT NULL) AS available`,
     ),
   ]);
   const r = results[4].rows[0];
@@ -106,14 +111,14 @@ async function facetsUncached(f: CatalogFilters): Promise<Facets> {
     models: results[2].rows as Facet[],
     bodies: results[3].rows.map((b) => ({ ...b, name: BODY_NAMES[b.slug] || b.slug })),
     ranges: {
-      year: [Number(r.y1 || 2021), Number(r.y2 || 2023)],
+      year: [r.y1 ?? null, r.y2 ?? null],
       price: [Number(r.p1 || 0), Number(r.p2 || 0)],
       mileage: [Number(r.m1 || 0), Number(r.m2 || 0)],
     },
     priceAvailable: results[5].rows[0].available,
   };
 }
-export const getCatalogFacets = unstable_cache(facetsUncached, ["catalog-facets-v1"], {
+export const getCatalogFacets = unstable_cache(facetsUncached, ["catalog-facets-v2"], {
   revalidate: 300,
 });
 const ORDERS = {
