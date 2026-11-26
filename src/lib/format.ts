@@ -1,6 +1,16 @@
 // Китайские иероглифы: такие значения не показываем, пока у них нет перевода
 const CJK = /[　-〿㐀-䶿一-鿿＀-￯]/;
 
+const carCountNumber = new Intl.NumberFormat("ru-RU");
+const carCountPlural = new Intl.PluralRules("ru-RU");
+const carCountWords = { one: "автомобиль", few: "автомобиля" };
+
+export function formatCarCount(count: number): string {
+  const plural = carCountPlural.select(count);
+  const word = plural === "one" || plural === "few" ? carCountWords[plural] : "автомобилей";
+  return `${carCountNumber.format(count)} ${word}`;
+}
+
 // Значение для показа на сайте: без иероглифов и с заглавной буквы.
 // Возвращает null, если показывать нечего.
 export function displayValue(value: string | null | undefined): string | null {

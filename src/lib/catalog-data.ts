@@ -38,6 +38,16 @@ export interface CatalogCar extends CarTitleData {
 }
 const FROM = `FROM cars c LEFT JOIN brands b ON b.id=c.brand_id OR (c.brand_id IS NULL AND b.name=c.brand_ru)
  LEFT JOIN catalog_spec_bodies cb ON cb.spec_id=c.spec_id LEFT JOIN specs s ON s.spec_id=c.spec_id`;
+export const getCatalogVisibleCount = unstable_cache(
+  async () => {
+    const { rows } = await pool.query<{ total: number }>(
+      `SELECT count(*)::int AS total FROM cars c WHERE ${CATALOG_VISIBLE_SQL}`,
+    );
+    return rows[0].total;
+  },
+  ["catalog-visible-count-v1"],
+  { revalidate: 300 },
+);
 export function catalogWhere(f: CatalogFilters, omit?: "brand" | "model" | "body" | "ranges") {
   const clauses = [CATALOG_VISIBLE_SQL];
   const values: (string | string[] | number)[] = [];
@@ -118,7 +128,7 @@ async function facetsUncached(f: CatalogFilters): Promise<Facets> {
     priceAvailable: results[5].rows[0].available,
   };
 }
-export const getCatalogFacets = unstable_cache(facetsUncached, ["catalog-facets-v2"], {
+export const getCatalogFacets = unstable_cache(facetsUncached, ["catalog-facets-v3"], {
   revalidate: 300,
 });
 const ORDERS = {

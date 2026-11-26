@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { usedBrandHref } from "@/lib/catalog";
+import { formatCarCount } from "@/lib/format";
 
 const BRANDS = [
   "Любая марка",
@@ -31,7 +32,7 @@ const BODY_TYPES = ["Любой кузов", "Седан", "Кроссовер",
 const quickFilterClass =
   "bg-graphite-800 hover:bg-graphite-700 text-gray-400 hover:text-white font-body text-xs px-4 py-2 rounded-full border border-white/5 transition-all";
 
-export default function HeroSearch() {
+export default function HeroSearch({ total }: { total: number | null }) {
   const router = useRouter();
   const [brand, setBrand] = useState("");
   const [bodyType, setBodyType] = useState("");
@@ -61,7 +62,8 @@ export default function HeroSearch() {
             Найди свой автомобиль
           </h1>
           <p className="text-gray-400 font-body text-lg max-w-xl mx-auto">
-            42&nbsp;000+ машин с пробегом из Китая. Цена уже с доставкой и растаможкой.
+            {total === null ? "Автомобили" : formatCarCount(total)} с пробегом из Китая. Цена уже с
+            доставкой и растаможкой.
           </p>
         </div>
 

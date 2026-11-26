@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { formatCarCount } from "@/lib/format";
 
-export default function CatalogEntry() {
+export default function CatalogEntry({ total }: { total: number | null }) {
   return (
     <section className="bg-graphite-900 py-6 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -15,7 +16,7 @@ export default function CatalogEntry() {
             <div className="relative">
               <div className="inline-flex items-center gap-2 bg-orange-500/10 text-orange-500 font-body text-xs font-semibold px-3 py-1 rounded-full mb-4">
                 <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
-                42&nbsp;184 авто в продаже
+                {total === null ? "Автомобили" : formatCarCount(total)} в продаже
               </div>
 
               <h2 className="font-heading font-bold text-2xl text-white mb-2">

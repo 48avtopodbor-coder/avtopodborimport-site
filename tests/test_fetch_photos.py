@@ -24,6 +24,8 @@ class FetchPhotosTests(unittest.TestCase):
         self.assertEqual(query.call_count, 2)
         for call in query.call_args_list:
             self.assertIn("AND photo_index <= 2", call.args[0])
+            self.assertIn("c.reg_month > (current_date + 45 - interval '5 years')", call.args[0])
+        self.assertIn("ORDER BY visible DESC NULLS LAST, photo_index ASC", query.call_args.args[0])
 
     def test_fourth_photo_stream_preserves_large_original_and_earlier_files(self):
         # Exercise the real SSH/tar program locally with a deterministic HTTP source.

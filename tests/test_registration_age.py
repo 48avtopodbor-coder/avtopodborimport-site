@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 COLLECTOR = Path(__file__).resolve().parents[1] / "scripts" / "collector"
 with patch.object(sys, "path", [str(COLLECTOR), *sys.path]):
-    from registration_age import customs_registration_bounds, customs_years, registration_month
+    from registration_age import customs_registration_bounds, customs_years, in_customs_window, registration_month
 
 
 class RegistrationAgeTests(unittest.TestCase):
@@ -35,6 +35,22 @@ class RegistrationAgeTests(unittest.TestCase):
             customs_registration_bounds(date(2024, 1, 15)),
             (date(2019, 2, 28), date(2021, 2, 28)),
         )
+
+    def test_window_requires_the_entire_registration_month(self):
+        for today, january_allowed in (
+            (date(2026, 11, 26), False),
+            (date(2026, 12, 16), False),
+            (date(2026, 12, 17), True),
+        ):
+            with self.subTest(today=today):
+                self.assertFalse(in_customs_window(date(2022, 1, 1), today))
+                self.assertTrue(in_customs_window(date(2022, 2, 1), today))
+                self.assertTrue(in_customs_window(date(2023, 12, 1), today))
+                self.assertEqual(in_customs_window(date(2024, 1, 1), today), january_allowed)
+                self.assertFalse(in_customs_window(date(2024, 2, 1), today))
+                self.assertFalse(in_customs_window(None, today))
+        # The earliest bound is exclusive even if the cutoff is the first of a month.
+        self.assertFalse(in_customs_window(date(2022, 1, 1), date(2026, 11, 17)))
 
     def test_recheck_keeps_only_candidates_that_could_still_be_eligible(self):
         spec = importlib.util.spec_from_file_location("enrich_for_age_test", COLLECTOR / "enrich.py")
