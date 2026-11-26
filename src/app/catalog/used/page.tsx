@@ -1,14 +1,24 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { parseFilters, catalogHref, type QueryInput } from "@/lib/catalog-filters";
+import {
+  parseFilters,
+  catalogHref,
+  type CatalogFilters as Filters,
+  type QueryInput,
+} from "@/lib/catalog-filters";
 import {
   getCatalogFacets,
   getCatalogList,
+  getCatalogTotal,
+  CATALOG_PAGE_SIZE,
   normalizeCatalogFilters,
   brandRegistry,
 } from "@/lib/catalog-data";
 import CatalogFilters from "./CatalogFilters";
 import CatalogCard from "./CatalogCard";
+import CatalogLoading from "./CatalogLoading";
 import { catalogNoScriptForm } from "@/lib/catalog-noscript";
 import { formatCarCount } from "@/lib/format";
 import { SITE_ORIGIN } from "@/lib/site";
@@ -32,7 +42,20 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 export default async function UsedCatalogPage({ searchParams }: Props) {
   const filters = await normalizeCatalogFilters(parseFilters(await searchParams));
-  const [list, facets] = await Promise.all([getCatalogList(filters), getCatalogFacets(filters)]);
+  const total = await getCatalogTotal(filters);
+  if (total > 0 && filters.page > Math.ceil(total / CATALOG_PAGE_SIZE)) notFound();
+  return (
+    <Suspense fallback={<CatalogLoading />}>
+      <CatalogResults filters={filters} total={total} />
+    </Suspense>
+  );
+}
+
+async function CatalogResults({ filters, total }: { filters: Filters; total: number }) {
+  const [list, facets] = await Promise.all([
+    getCatalogList(filters, total),
+    getCatalogFacets(filters),
+  ]);
   const current = { ...filters, page: list.page };
   const pages = Math.ceil(list.total / list.pageSize);
   return (

@@ -8,7 +8,7 @@
 
 Если копия не менялась с прошлого импорта, запуск пропускается (копия обновляется дважды в сутки).
 
---dry-run  только проверить источник: путь, дата, число строк, нужные столбцы.
+--dry-run  проверить источник и посчитать удаление по возрасту без записи.
 --force    импортировать, даже если копия не менялась.
 --allow-mass-delete  разрешить удаление выше порога и повторную обработку той же копии.
 --normalize-photo-links  исправить ссылки у активных машин без локального главного фото.
@@ -24,11 +24,12 @@ import sqlite3
 import sys
 import time
 from collections import Counter
+from contextlib import closing
 
 # The production cron runs this file directly, while tests load it by path.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from car_titles import extract_title, normalize_brand
-from collector.registration_age import registration_month
+from collector.registration_age import customs_registration_bounds, registration_month
 
 SQLITE_PATH = os.environ.get("SQLITE_PATH", "/srv/che168/cars.db")
 PG_DSN = os.environ.get(
@@ -177,16 +178,21 @@ def enrich_car(row, brands, models, unknown):
     return imported + (brand_id, name, model_slug, trim)
 
 
-def copy_table(sq, cur, sql, src_cols, table, title_catalog=None, active_only=False):
+def copy_table(sq, cur, sql, src_cols, table, title_catalog=None, active_only=False, excluded_ids=()):
     from psycopg2.extras import execute_values
     condition = " WHERE is_active=1" if active_only else ""
     rows = sq.execute(f"SELECT {', '.join(src_cols)} FROM {table}{condition}")
     total = 0
     unknown = Counter()
+    listing_index = src_cols.index("listing_id") if excluded_ids else None
     while True:
         batch = rows.fetchmany(BATCH)
         if not batch:
             break
+        if listing_index is not None:
+            batch = [row for row in batch if str(row[listing_index]) not in excluded_ids]
+            if not batch:
+                continue
         if title_catalog is not None:
             brands, models = title_catalog
             batch = [enrich_car(row, brands, models, unknown) for row in batch]
@@ -198,6 +204,35 @@ def copy_table(sq, cur, sql, src_cols, table, title_catalog=None, active_only=Fa
             cars_count = unmapped_brand_names.cars_count + EXCLUDED.cars_count,
             last_seen = now()""", list(unknown.items()))
     return total
+
+
+def registration_cleanup_plan(sq, cur):
+    """Use the same PostgreSQL calendar date as the catalog."""
+    cur.execute("SELECT current_date")
+    oldest, _ = customs_registration_bounds(cur.fetchone()[0])
+    incoming = {}
+    source_aged = set()
+    for listing_id, first_reg, year in sq.execute(
+        "SELECT listing_id,first_reg_date,year FROM cars WHERE is_active=1"
+    ):
+        listing_id = str(listing_id)
+        incoming[listing_id] = (first_reg, year)
+        month = registration_month(first_reg, year)
+        if month is not None and month <= oldest:
+            source_aged.add(listing_id)
+
+    cur.execute("SELECT listing_id::text,reg_month,first_reg_date,year FROM cars")
+    site_aged = set()
+    for listing_id, month, first_reg, year in cur:
+        if listing_id in incoming and listing_id not in source_aged:
+            # Match the upsert: prefer corrected registration data while retaining
+            # previously known fields when the snapshot supplies NULL.
+            new_first_reg, new_year = incoming[listing_id]
+            month = registration_month(new_first_reg if new_first_reg is not None else first_reg,
+                                       new_year if new_year is not None else year)
+        if listing_id in source_aged or (month is not None and month <= oldest):
+            site_aged.add(listing_id)
+    return oldest, source_aged, site_aged
 
 
 def main():
@@ -227,13 +262,20 @@ def run_import():
     stamp = time.strftime("%Y-%m-%d %H:%M", time.localtime(source_stat.st_mtime))
     print(f"{time.strftime('%Y-%m-%d %H:%M')} источник {SQLITE_PATH} от {stamp}: "
           f"машин {n_cars} (в продаже с ценой {n_active}), комплектаций {n_specs}")
-    if dry:
-        sq.close()
-        print("проверка источника: ok, в базу сайта ничего не записано")
-        return
     if not n_cars or not n_active:
         sq.close()
         sys.exit("пустая копия или нет активных машин — импорт и удаление отменены")
+
+    if dry:
+        import psycopg2
+        with closing(sq), closing(psycopg2.connect(PG_DSN)) as pg:
+            pg.set_session(readonly=True)
+            with pg, pg.cursor() as cur:
+                oldest, source_aged, site_aged = registration_cleanup_plan(sq, cur)
+        print(f"План по возрасту (месяц регистрации ≤ {oldest}): исключить из копии "
+              f"{len(source_aged)}, удалить с сайта {len(site_aged)}")
+        print("проверка источника: ok, в базу сайта ничего не записано")
+        return
 
     try:
         with open(STATE_PATH) as state:
@@ -249,19 +291,24 @@ def run_import():
         return
 
     import psycopg2
-    from sold_cars import remove_confirmed
+    from sold_cars import remove_aged_out, remove_confirmed
     pg = psycopg2.connect(PG_DSN)
     try:
         with pg, pg.cursor() as cur:  # одна транзакция: сайт видит либо старые данные, либо новые
-            removed = remove_confirmed(sq, cur, allow_mass_delete=allow_mass_delete)
+            oldest, source_aged, site_aged = registration_cleanup_plan(sq, cur)
+            removed = remove_confirmed(sq, cur, allow_mass_delete=allow_mass_delete, aged_out_ids=site_aged)
+            aged_removed = remove_aged_out(cur, site_aged)
             title_catalog = load_title_catalog(cur)
             s = copy_table(sq, cur, spec_upsert_sql(), SPEC_SRC, "specs")
-            c = copy_table(sq, cur, car_upsert_sql(), CAR_COLS, "cars", title_catalog, active_only=True)
+            c = copy_table(sq, cur, car_upsert_sql(), CAR_COLS, "cars", title_catalog,
+                           active_only=True, excluded_ids=source_aged | site_aged)
             cur.execute("SELECT count(*), count(*) FILTER (WHERE is_active = 1 AND price_cny > 0) FROM cars")
             site_total, site_active = cur.fetchone()
     finally:
         pg.close()
         sq.close()
+    print(f"Удалено по возрасту: {aged_removed} (месяц регистрации ≤ {oldest}); "
+          f"исключено из копии: {len(source_aged)}", flush=True)
     from refresh_catalog_queue import main as refresh_catalog_queue
     refresh_catalog_queue()
     temporary_state = STATE_PATH + ".tmp"

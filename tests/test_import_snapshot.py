@@ -101,6 +101,33 @@ class SnapshotTests(unittest.TestCase):
                 with self.assertRaisesRegex(SystemExit, "возможно, ещё пишется"):
                     import_cars.open_source()
 
+    def test_age_cleanup_uses_exclusive_old_boundary_and_preserves_corrected_and_young_cars(self):
+        with sqlite3.connect(":memory:") as source:
+            source.execute("CREATE TABLE cars(listing_id text, first_reg_date text, year integer, is_active integer)")
+            source.executemany("INSERT INTO cars VALUES (?, ?, ?, 1)", [
+                ("exact", "2022-01", 2022),
+                ("eligible", "2022-02", 2022),
+                ("young", "2024-02", 2024),
+                ("corrected", "2022-03", 2022),
+                ("cached-old", None, None),
+                ("source-old", "2021-12", 2021),
+            ])
+            cursor = MagicMock()
+            cursor.fetchone.return_value = (date(2026, 11, 17),)
+            cursor.__iter__.return_value = iter([
+                ("exact", date(2022, 1, 1), "2022-01", 2022),
+                ("eligible", date(2022, 2, 1), "2022-02", 2022),
+                ("young", date(2024, 2, 1), "2024-02", 2024),
+                ("corrected", date(2021, 12, 1), "2021-12", 2021),
+                ("cached-old", date(2021, 11, 1), "2021-11", 2021),
+                ("source-old", date(2023, 11, 1), "2023-11", 2023),
+                ("site-only", date(2021, 10, 1), "2021-10", 2021),
+            ])
+            oldest, excluded, aged = import_cars.registration_cleanup_plan(source, cursor)
+        self.assertEqual(oldest, date(2022, 1, 1))
+        self.assertEqual(excluded, {"exact", "source-old"})
+        self.assertEqual(aged, {"exact", "cached-old", "source-old", "site-only"})
+
 
     def test_blocked_deletion_commits_import_and_manual_flag_reuses_same_snapshot(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -112,17 +139,19 @@ class SnapshotTests(unittest.TestCase):
             pg.cursor.return_value.__enter__.return_value.fetchone.return_value = (40, 40)
             psycopg2 = SimpleNamespace(connect=Mock(return_value=pg))
             remove = Mock(side_effect=[None, 10])
+            age_remove = Mock(return_value=7)
             refresh = Mock()
             with (
                 patch.dict(sys.modules, {
                     "psycopg2": psycopg2,
-                    "sold_cars": SimpleNamespace(remove_confirmed=remove),
+                    "sold_cars": SimpleNamespace(remove_confirmed=remove, remove_aged_out=age_remove),
                     "refresh_catalog_queue": SimpleNamespace(main=refresh),
                 }),
                 patch.object(import_cars, "STATE_PATH", str(state)),
                 patch.object(import_cars, "LOCK_PATH", str(lock)),
                 patch.object(import_cars, "open_source", return_value=(sq, SimpleNamespace(st_mtime=0), "snapshot")),
                 patch.object(import_cars, "load_title_catalog", return_value=({}, {})),
+                patch.object(import_cars, "registration_cleanup_plan", return_value=(date(2022, 1, 1), {"old"}, {"old", "site-old"})),
                 patch.object(import_cars, "copy_table", side_effect=[10, 40, 10, 40]) as copy,
                 redirect_stdout(io.StringIO()),
             ):
@@ -131,6 +160,9 @@ class SnapshotTests(unittest.TestCase):
                     self.assertEqual(state.read_text(), "snapshot\nsold-delete-blocked\n")
                     pg.__exit__.assert_called_once_with(None, None, None)
                     self.assertEqual(copy.call_count, 2)
+                    self.assertEqual(copy.call_args.kwargs["excluded_ids"], {"old", "site-old"})
+                    age_remove.assert_called_once_with(pg.cursor.return_value.__enter__.return_value, {"old", "site-old"})
+                    self.assertEqual(remove.call_args.kwargs["aged_out_ids"], {"old", "site-old"})
                     refresh.assert_called_once()
                     self.assertEqual(import_cars.main(), 3)
                     self.assertEqual(copy.call_count, 2)

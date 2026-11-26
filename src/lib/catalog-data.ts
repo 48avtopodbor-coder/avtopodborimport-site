@@ -40,13 +40,24 @@ const CAR_BRANDS =
   "LEFT JOIN brands b ON b.id=c.brand_id OR (c.brand_id IS NULL AND b.name=c.brand_ru)";
 const FROM = `FROM cars c ${CAR_BRANDS}
  LEFT JOIN catalog_spec_bodies cb ON cb.spec_id=c.spec_id LEFT JOIN specs s ON s.spec_id=c.spec_id`;
-export async function getCatalogSitemapEntries() {
-  const { rows } = await pool.query<{ listing_id: string; brand_slug: string | null }>(
-    `SELECT c.listing_id::text, b.slug AS brand_slug
-     FROM cars c ${CAR_BRANDS} WHERE ${CATALOG_VISIBLE_SQL} ORDER BY c.listing_id`,
-  );
-  return rows;
-}
+export const getCatalogSitemapEntries = unstable_cache(
+  async () => {
+    const { rows } = await pool.query<{ listing_id: string; brand_slug: string | null }>(
+      `SELECT c.listing_id::text, b.slug AS brand_slug
+       FROM cars c ${CAR_BRANDS} WHERE ${CATALOG_VISIBLE_SQL} ORDER BY c.listing_id`,
+    );
+    const listingIds = rows.map(({ listing_id }) => listing_id);
+    const brandSlugs = [
+      ...new Set(rows.flatMap(({ brand_slug }) => (brand_slug ? [brand_slug] : []))),
+    ];
+    if (listingIds.length + brandSlugs.length + 2 > 45_000) {
+      console.warn("Карта сайта превысила 45 000 URL, разделите её через generateSitemaps");
+    }
+    return { listingIds, brandSlugs };
+  },
+  ["catalog-sitemap-entries-v1"],
+  { revalidate: 3600 },
+);
 export const getCatalogSummary = unstable_cache(
   async () => {
     const { rows } = await pool.query<{ total: number; priceAvailable: boolean }>(
@@ -174,14 +185,20 @@ export function catalogListQuery(f: CatalogFilters, limit: number, offset: numbe
       : `SELECT ${matched} ORDER BY ${ORDERS[f.sort]},c.listing_id DESC ${pagination}`;
   return { sql, values: [...where.values, limit, offset] };
 }
-export async function getCatalogList(f: CatalogFilters) {
-  const where = catalogWhere(f),
-    pageSize = 24;
+export const CATALOG_PAGE_SIZE = 24;
+
+export async function getCatalogTotal(f: CatalogFilters) {
+  const where = catalogWhere(f);
   const count = await pool.query(
     `SELECT count(*)::int AS total ${FROM} WHERE ${where.sql}`,
     where.values,
   );
-  const total: number = count.rows[0].total;
+  return count.rows[0].total as number;
+}
+
+export async function getCatalogList(f: CatalogFilters, knownTotal?: number) {
+  const total = knownTotal ?? (await getCatalogTotal(f));
+  const pageSize = CATALOG_PAGE_SIZE;
   const page = Math.min(f.page, Math.max(1, Math.ceil(total / pageSize)));
   const query = catalogListQuery(f, pageSize, (page - 1) * pageSize);
   const cars = await pool.query<CatalogCar>(query.sql, query.values);

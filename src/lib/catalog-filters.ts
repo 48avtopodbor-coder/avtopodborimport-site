@@ -56,6 +56,7 @@ export function parseFilters(input: QueryInput): CatalogFilters {
   const brandValue = value("brand").trim().toLowerCase().replace(/\s+/g, "-");
   const brand = slug(brandValue) ? brandValue : "";
   const sort = Object.hasOwn(SORT_NAMES, value("sort")) ? (value("sort") as Sort) : "diverse";
+  const requestedPage = value("page");
   const result: CatalogFilters = {
     brand,
     models: brand ? list("model") : [],
@@ -67,7 +68,9 @@ export function parseFilters(input: QueryInput): CatalogFilters {
     mileageFrom: number("mileageFrom", 0, 3000000),
     mileageTo: number("mileageTo", 0, 3000000),
     sort,
-    page: number("page", 1, 10000) || 1,
+    page: /^\d+$/.test(requestedPage)
+      ? Math.max(1, Math.min(Number(requestedPage), Number.MAX_SAFE_INTEGER))
+      : 1,
     fuel: value("fuel").length <= 40 ? value("fuel") || undefined : undefined,
   };
   for (const [from, to] of [

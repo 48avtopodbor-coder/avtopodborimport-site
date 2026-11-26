@@ -9,8 +9,9 @@ flock -n 9 || { echo "копирование уже идёт"; exit 1; }
 temporary=$(mktemp /srv/che168/cars.db.download.XXXXXXXX)
 snapshot=$(mktemp /srv/che168/cars.db.snapshot.XXXXXXXX)
 previous=$(mktemp /srv/che168/cars.db.previous.XXXXXXXX)
+import_log=$(mktemp /srv/che168/import-output.XXXXXXXX)
 cleanup() {
-  rm -f "$temporary" "$snapshot" "$previous"
+  rm -f "$temporary" "$snapshot" "$previous" "$import_log"
 }
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
@@ -49,7 +50,12 @@ ls -lh cars.db | awk '{print "готово:", $5, $9}'
 # Почасовой запуск остаётся повторной попыткой, если этот импорт не прошёл.
 import_status=0
 sudo -u postgres env SQLITE_PATH="$snapshot" \
-  python3 /opt/avtopodborimport/import_cars.py --published || import_status=$?
+  python3 /opt/avtopodborimport/import_cars.py --published >"$import_log" 2>&1 || import_status=$?
+cat "$import_log"
+if [ "$import_status" -ne 0 ]; then
+  python3 /opt/avtopodborimport/notify.py "$snapshot" "$import_status" "$import_log" ||
+    echo "не удалось обработать оповещение об импорте"
+fi
 
 if [ "$import_status" -eq 0 ]; then
   # Both daily imports clean files; the timer retries when a photo batch owns the lock.
