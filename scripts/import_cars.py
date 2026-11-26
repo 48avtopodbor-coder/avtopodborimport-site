@@ -10,9 +10,13 @@
 
 --dry-run  только проверить источник: путь, дата, число строк, нужные столбцы.
 --force    импортировать, даже если копия не менялась.
+--normalize-photo-links  исправить ссылки у активных машин без локального главного фото.
+                        С --dry-run только посчитать объявления для исправления.
 """
 import fcntl
+import json
 import os
+import re
 import sqlite3
 import sys
 import time
@@ -30,6 +34,7 @@ LOCK_PATH = "/tmp/import_cars.lock"
 # Дата копии, которую уже перенесли (домашняя папка postgres)
 STATE_PATH = os.environ.get("IMPORT_STATE", "/var/lib/postgresql/import_cars.last")
 BATCH = 1000
+SOURCE_PHOTO_URL = re.compile(r"""https://(?:[0-9a-z-]+\.)+autoimg\.cn/[^\s"'\\]+""")
 
 # Столбцы машин: одинаковые имена в базе сборщика и в базе сайта.
 # local_photo, local_photo_2, local_photo_3 и local_photo_4 есть только на сайте — импорт их не трогает.
@@ -109,8 +114,44 @@ def load_title_catalog(cur):
     return brands, models
 
 
+def normalize_photo_links(images):
+    """Wrap a single Che168 cover URL while preserving existing image lists."""
+    if isinstance(images, str):
+        url = images.strip()
+        if SOURCE_PHOTO_URL.fullmatch(url):
+            return json.dumps([url])
+    return images
+
+
+def normalize_saved_photo_links(dry_run):
+    import psycopg2
+
+    with psycopg2.connect(PG_DSN) as pg, pg.cursor() as cur:
+        cur.execute("""
+            SELECT listing_id, images FROM cars
+            WHERE is_active = 1 AND local_photo IS NULL
+              AND NOT pg_input_is_valid(images, 'json')
+        """)
+        changes = []
+        for listing_id, images in cur:
+            normalized = normalize_photo_links(images)
+            if normalized != images:
+                changes.append((normalized, listing_id, images))
+        if not dry_run and changes:
+            cur.executemany(
+                """UPDATE cars SET images = %s
+                   WHERE listing_id = %s AND images = %s AND is_active = 1
+                     AND local_photo IS NULL""",
+                changes,
+            )
+        count = len(changes) if dry_run or not changes else cur.rowcount
+    print(f"{'К исправлению' if dry_run else 'Исправлено'} одиночных ссылок на фото: {count}")
+
+
 def enrich_car(row, brands, models, unknown):
     data = dict(zip(CAR_COLS, row))
+    data["images"] = normalize_photo_links(data["images"])
+    imported = tuple(data.values())
     raw_brand = (data["brand_ru"] or data["brand_cn"] or "").strip()
     found = brands.get(normalize_brand(raw_brand))
     if not found and data["brand_cn"]:
@@ -118,12 +159,12 @@ def enrich_car(row, brands, models, unknown):
     if not found:
         if raw_brand:
             unknown[raw_brand] += 1
-        return tuple(row) + (None, None, None, None)
+        return imported + (None, None, None, None)
     brand_id, slug = found
     name, model_slug, trim = extract_title(
         data["model"] or "", data["series_name"], data["brand_cn"], models.get(slug, {}), slug
     )
-    return tuple(row) + (brand_id, name, model_slug, trim)
+    return imported + (brand_id, name, model_slug, trim)
 
 
 def copy_table(sq, cur, sql, src_cols, table, title_catalog=None, active_only=False):
@@ -158,6 +199,10 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         sys.exit("импорт уже идёт — пропуск")
+
+    if "--normalize-photo-links" in sys.argv:
+        normalize_saved_photo_links(dry)
+        return
 
     t0 = time.time()
     sq, source_stat, identity = open_source(published=published)
