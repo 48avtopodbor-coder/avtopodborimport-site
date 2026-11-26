@@ -84,12 +84,17 @@ test("catalog card uses mapped model and registration year, including photo alt"
     "@/lib/format": format,
   }).default;
   const markup = renderToStaticMarkup(
-    React.createElement(Card, { car: { ...dolphin, local_photo: "/photos/test.jpg" } }),
+    React.createElement(Card, { car: { ...dolphin, local_photo: "/photos/test.jpg" }, eager: true }),
   );
   assert.match(markup, /BYD Dolphin 2022/);
   assert.match(markup, /alt="BYD Dolphin 2022"/);
   assert.doesNotMatch(markup, /2021|405km|海豚/);
   assert.match(markup, /¥\s55\s800/);
+  assert.match(markup, /loading="eager" decoding="async"/);
+  const lazy = renderToStaticMarkup(
+    React.createElement(Card, { car: { ...dolphin, local_photo: "/photos/test.jpg" }, eager: false }),
+  );
+  assert.match(lazy, /loading="lazy" decoding="async"/);
 });
 test("home search shares body codes and turns on all ruble controls together", () => {
   const filters = load("../src/lib/catalog-filters.ts");

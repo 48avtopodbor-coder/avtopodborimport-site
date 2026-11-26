@@ -54,7 +54,13 @@ export default function PhotoLightbox({
       plugins={[Zoom]}
       className={styles.viewer}
       portal={{ container: { "aria-label": `Фотографии автомобиля ${title}` } }}
-      carousel={{ preload: 1, padding: 0, spacing: "12%", imageFit: "contain" }}
+      carousel={{
+        preload: 1,
+        padding: 0,
+        spacing: "12%",
+        imageFit: "contain",
+        imageProps: { decoding: "async" },
+      }}
       controller={{ aria: true, closeOnPullDown: !zoomed, closeOnBackdropClick: false }}
       zoom={{ ref: zoomRef, maxZoomPixelRatio: 2, zoomInMultiplier: 2, scrollToZoom: true }}
       animation={{ fade: 180, swipe: 300, zoom: 250 }}
@@ -117,7 +123,8 @@ export default function PhotoLightbox({
                       fill
                       sizes="84px"
                       unoptimized
-                      loading="lazy"
+                      loading={photoIndex < 4 ? "eager" : "lazy"}
+                      decoding="async"
                       className={styles.thumbImage}
                     />
                   </button>
