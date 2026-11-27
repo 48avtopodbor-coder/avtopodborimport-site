@@ -41,7 +41,7 @@
 
   /* Учитываем ширину окна и место, которое занимают элементы при увеличении текста. */
   @media (min-width: 640px) {
-    @container (min-width: 36rem) {
+    @container (min-width: 38rem) {
       .home-header .home-header-grid {
         grid-template-columns: minmax(0, 1fr) auto;
       }
