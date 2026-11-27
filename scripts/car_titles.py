@@ -74,6 +74,8 @@ def extract_title(
             pro = re.search(r"Pro\b", tail, re.I)
             if code and pro:
                 trim = f"{code.group(1)} Pro"
+        elif brand_slug == "nissan" and slug == "sylphy" and re.search(r"e-power", tail, re.I):
+            trim = "e-POWER"
         elif brand_slug == "li-auto" and re.fullmatch(r"(?:Pro|Max|Ultra)", tail, re.I):
             trim = tail
         elif LATIN_TRIM.fullmatch(tail) and len(TRIM_TOKENS.findall(tail)) <= 3:

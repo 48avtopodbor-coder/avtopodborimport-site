@@ -25,6 +25,7 @@ const BRANDS = [
   "Volkswagen",
   "Skoda",
   "Mazda",
+  "Nissan",
 ];
 
 const controlClass =
@@ -57,11 +58,11 @@ export default function HeroSearch({
   };
 
   return (
-    <section className="relative overflow-hidden bg-graphite-900 pt-12 pb-16">
+    <section className="home-search relative overflow-hidden bg-graphite-900 pt-12 pb-16">
       {/* Фоновый акцент */}
       <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent pointer-events-none" />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="home-search-inner relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Заголовок */}
         <div className="text-center mb-10">
           <p className="text-orange-500 font-heading text-xs uppercase tracking-widest mb-3">
@@ -81,7 +82,7 @@ export default function HeroSearch({
           <form
             action="/catalog/used"
             onSubmit={handleSearch}
-            className={`grid grid-cols-1 gap-2 rounded-2xl bg-graphite-800 p-2 ${
+            className={`home-search-form grid grid-cols-1 gap-2 rounded-2xl bg-graphite-800 p-2 ${
               priceAvailable
                 ? "sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,0.85fr)_auto]"
                 : "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_auto]"
@@ -120,7 +121,7 @@ export default function HeroSearch({
 
             <button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-body font-bold text-sm px-8 py-3 rounded-xl transition-colors whitespace-nowrap"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-body font-bold text-sm px-8 py-3 rounded-xl transition-colors"
             >
               Найти авто
             </button>

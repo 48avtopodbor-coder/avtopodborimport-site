@@ -33,3 +33,110 @@
     @apply border-t border-orange-500/20;
   }
 }
+
+@layer components {
+  .home-header .home-header-menu {
+    display: none;
+  }
+
+  /* Учитываем ширину окна и место, которое занимают элементы при увеличении текста. */
+  @media (min-width: 640px) {
+    @container (min-width: 36rem) {
+      .home-header .home-header-grid {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .home-header-contacts {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+      }
+    }
+  }
+
+  @media (min-width: 768px) {
+    @container (min-width: 43rem) {
+      .home-header .home-header-menu {
+        display: flex;
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+    }
+  }
+
+  @media (min-width: 1024px) {
+    @container (min-width: 58rem) {
+      .home-header .home-header-grid {
+        grid-template-columns: auto 1fr auto;
+      }
+
+      .home-header .home-header-menu {
+        grid-column: 2;
+        grid-row: 1;
+        gap: 0.75rem;
+      }
+
+      .home-header-contacts {
+        grid-column: 3;
+      }
+    }
+  }
+
+  @media (min-width: 1280px) {
+    @container (min-width: 74rem) {
+      .home-header .home-header-menu {
+        gap: 1.5rem;
+      }
+    }
+  }
+}
+
+@layer utilities {
+  @container (max-width: 36rem) {
+    .home-search .home-search-form {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @container (max-width: 24rem) {
+    .home-search h1 {
+      font-size: min(1.875rem, 10.8cqi);
+    }
+  }
+
+  @container (max-width: 17rem) {
+    main > .home-header {
+      position: static;
+    }
+
+    .home-header .home-header-inner,
+    .home-search .home-search-inner {
+      padding-inline: 16px;
+    }
+
+    .home-header .home-header-brand {
+      column-gap: 8px;
+    }
+
+    .home-header-brand > div {
+      width: min(2rem, 36px);
+      height: min(2rem, 36px);
+    }
+
+    .home-header-brand > span {
+      font-size: min(0.875rem, 7.75cqi);
+    }
+
+    .home-search-form select {
+      padding-inline: 0.5rem;
+    }
+
+    .home-search-form button {
+      padding-inline: 1rem;
+    }
+
+    .home-header-contacts {
+      flex-wrap: wrap;
+    }
+  }
+}
