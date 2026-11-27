@@ -49,27 +49,27 @@ export default async function LatestArrivals({ total }: { total: number | null }
       : `${total > 1 ? "Все" : "Смотреть"} ${formatCarCount(total)}`;
 
   return (
-    <section className="bg-graphite-900 py-16">
+    <section className="home-arrivals bg-graphite-900 py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-end justify-between mb-8">
-          <div>
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 mb-8">
+          <div className="min-w-0">
             <p className="text-orange-500 font-heading text-xs uppercase tracking-widest mb-2">
-              Свежие поступления
+              Свежие поступ&shy;ле&shy;ния
             </p>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-white">
-              Только добавленные
+              Только добав&shy;лен&shy;ные
             </h2>
           </div>
           <Link
             href="/catalog/used"
-            className="hidden sm:flex items-center gap-2 text-gray-400 hover:text-orange-500 font-body text-sm transition-colors"
+            className="home-arrivals-all-top items-center gap-2 text-gray-400 hover:text-orange-500 font-body text-sm transition-colors"
           >
             {catalogLabel} <span aria-hidden="true">→</span>
           </Link>
         </div>
 
         {cars && cars.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 empty:before:col-span-full empty:before:font-body empty:before:text-sm empty:before:text-gray-400 empty:before:content-['Пока_нет_объявлений_с_доступными_фото.']">
+          <div className="home-arrivals-grid grid grid-cols-1 gap-4 empty:before:col-span-full empty:before:font-body empty:before:text-sm empty:before:text-gray-400 empty:before:content-['Пока_нет_объявлений_с_доступными_фото.']">
             {cars.map((car) => {
               const fuel = firstDisplayValue(car.fuel, car.spec_fuel);
               const name = formatCarFullName(car);
@@ -113,10 +113,10 @@ export default async function LatestArrivals({ total }: { total: number | null }
               : "Пока нет подходящих объявлений с фото."}
           </p>
         )}
-        <div className="text-center mt-8 sm:hidden">
+        <div className="home-arrivals-all-bottom text-center mt-8">
           <Link
             href="/catalog/used"
-            className="inline-flex items-center gap-2 bg-graphite-800 text-white font-body font-semibold text-sm px-6 py-3 rounded-xl border border-white/5 hover:border-orange-500/30 transition-all"
+            className="inline-flex max-w-full items-center gap-2 bg-graphite-800 text-white font-body font-semibold text-sm px-6 py-3 rounded-xl border border-white/5 hover:border-orange-500/30 transition-all"
           >
             {catalogLabel}
           </Link>

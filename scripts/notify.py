@@ -80,6 +80,10 @@ def send_alert(snapshot, status, import_log, env_path=ALERT_ENV, state_path=ALER
     if credentials is None:
         print("Оповещение только в журнале:", message.replace("\n", " "))
         return
+    deliver_message(message, credentials)
+
+
+def deliver_message(message, credentials):
     token, chat_id = credentials
     payload = json.dumps({"chat_id": chat_id, "text": message}).encode()
     request = Request(f"https://api.telegram.org/bot{token}/sendMessage", payload,
