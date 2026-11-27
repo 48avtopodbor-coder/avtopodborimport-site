@@ -44,10 +44,11 @@ def clean_seller_text(text, matches=None):
 
 # A date is compared component by component. Keeping separators prevents grouping
 # adjacent date components as thousands (which is valid in Russian prices).
-SHORT_YEAR = re.compile(r"(?<![0-9年./-])([12][0-9])(?=[ ?]*(?:改?款|上牌|年[ ?]*(?:[0-9]|上牌|落户|登记|注册|出厂|生产|款)))")
+# Listings abbreviate contemporary model/registration years, e.g. 23年宝马.
+SHORT_YEAR = re.compile(r"(?<![0-9./-])(2[0-9])(?=[ ?]*(?:改?款|上牌|年))")
 MONTH_PATTERN = r"(0?[1-9]|1[0-2])"
-SHORT_DATE = r"([12][0-9])[./-]" + MONTH_PATTERN + r"(?![0-9./-])"
-LABELLED_SHORT_DATE = re.compile(r"(?:出厂|上牌|生产|保险|登记|交强)(?:时间|日期|到期)?[】 :：?]*" + SHORT_DATE)
+SHORT_DATE = r"([12][0-9])[./-]" + MONTH_PATTERN + r"(?:[./-](0?[1-9]|[12][0-9]|3[01]))?(?![0-9./-])"
+LABELLED_SHORT_DATE = re.compile(r"(?:出厂|上牌|生产|保险|登记|交强|厂牌|强险)(?:时间|日期|到期)?[】 :：?]*" + SHORT_DATE)
 SHORT_REG_DATE = re.compile(r"(?<![a-zA-Z0-9./-])" + SHORT_DATE + r"(?=[ ?]*(?:出厂|上牌|生产|月))")
 GROUPED_COMMA = re.compile(r"(?<![0-9.])[0-9]{1,3}(?:,[0-9]{3})+(?![0-9])")
 MONTH_YEAR = re.compile(r"(?<![0-9.])(?:(0?[1-9]|[12][0-9]|3[01])[./-])?(0?[1-9]|1[0-2])[./-]((?:19|20)[0-9]{2})(?![0-9])")
@@ -56,7 +57,7 @@ MONTHS = ("январ", "феврал", "март", "апрел", "ма[йяе]"
           "июл", "август", "сентябр", "октябр", "ноябр", "декабр")
 MONTH_NAME = re.compile(r"\b(?:" + "|".join(f"({stem}[а-я]*)" for stem in MONTHS) + r")\b", re.I)
 NUMBER = re.compile(r"(?P<value>[0-9]{1,3}(?:[ \u00a0\u202f][0-9]{3})+(?![0-9])|[0-9]+(?:[.,][0-9]+)?)"
-                    r"(?:[ \t?]*(?:多|余)?(?P<unit>万|[wk](?![a-z0-9])|千(?!米)|"
+                    r"(?:[ \t?]*(?:多|余)?(?P<unit>万|w(?=km)|w(?![a-z0-9])|(?<=[0-9])k(?![a-z0-9?])|千(?!米)|"
                     r"тыс(?:яч(?:а|и|у)?)?\b|млн\b|миллион(?:а|ов)?\b))?", re.I)
 
 
@@ -64,8 +65,11 @@ def quantities(text):
     text = unicodedata.normalize("NFKC", text.replace("，", ";"))
     text = GROUPED_COMMA.sub(lambda m: m[0].replace(",", ""), text)
     if re.search(r"[一-龥]", text):
-        text = LABELLED_SHORT_DATE.sub(r" 20\1/\2", text)
-        text = SHORT_REG_DATE.sub(r"20\1/\2", text)
+        text = re.sub(r"(?<=[一-龥])\?+(?=[一-龥])", "", text)
+        def full_date(match):
+            return " 20" + "/".join(x for x in match.groups() if x)
+        text = LABELLED_SHORT_DATE.sub(full_date, text)
+        text = SHORT_REG_DATE.sub(full_date, text)
         # 成 is one tenth of a whole (the usual unit for a down payment).
         text = re.sub(r"([0-9])(?:到|至|-)([0-9])成", lambda m: f"{m[1]}0%-{m[2]}0%", text)
         text = re.sub(r"(?<![0-9.])([0-9])成", r"\g<1>0%", text)
