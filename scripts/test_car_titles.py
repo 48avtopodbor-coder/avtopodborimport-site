@@ -9,6 +9,15 @@ class CarTitlesTest(unittest.TestCase):
         self.assertEqual(normalize_brand(" Li-Auto "), "liauto")
         self.assertEqual(normalize_brand("ｌｉ　ａｕｔｏ"), "liauto")
 
+    def test_sylphy_preserves_e_power_variant_in_the_same_series(self):
+        aliases = {"轩逸": ("Sylphy", "sylphy")}
+        for title, trim in [("电驱版e-POWER 全电驱Pro", "e-POWER"), ("经典 自动", None)]:
+            with self.subTest(title=title):
+                self.assertEqual(
+                    extract_title(f"轩逸 2022款 {title}", None, "日产", aliases, "nissan"),
+                    ("Sylphy", "sylphy", trim),
+                )
+
     def test_known_jetta_title(self):
         title = extract_title(
             "捷达VS5 2022款 280TSI 自动进取型Pro", None, "捷达",

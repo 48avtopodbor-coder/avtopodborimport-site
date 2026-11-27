@@ -22,7 +22,8 @@ TARGET_BRANDS = [{'name_cn': '哈弗', 'name_ru': 'Haval', 'slug': 'hafu'},
  {'name_cn': '宝马', 'name_ru': 'BMW', 'slug': 'baoma'},
  {'name_cn': '奥迪', 'name_ru': 'Audi', 'slug': 'aodi'},
  {'name_cn': '捷达', 'name_ru': 'Jetta', 'slug': 'jieda'},
- {'name_cn': '马自达', 'name_ru': 'Mazda', 'slug': 'mazida'}]
+ {'name_cn': '马自达', 'name_ru': 'Mazda', 'slug': 'mazida'},
+ {'name_cn': '日产', 'name_ru': 'Nissan', 'slug': 'richan'}]
 
 SUBBRAND_RULES = [{'keywords': ('OMODA', '欧萌达'),
   'name_cn': '欧萌达',

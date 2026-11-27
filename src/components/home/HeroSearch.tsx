@@ -25,6 +25,7 @@ const BRANDS = [
   "Volkswagen",
   "Skoda",
   "Mazda",
+  "Nissan",
 ];
 
 const controlClass =

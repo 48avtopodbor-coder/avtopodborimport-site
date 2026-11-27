@@ -18,6 +18,7 @@
 | Li Auto | `li-auto.svg` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Li_Auto_logo.svg) |
 | Mazda | `mazda.svg` | [vehiclespecs](https://github.com/vehiclespecs/brand-logos/blob/main/mazda-logo.svg) |
 | Mercedes-Benz | `mercedes-benz.svg` | [vehiclespecs](https://github.com/vehiclespecs/brand-logos/blob/main/mercedes-benz-logo.svg) |
+| Nissan | `nissan.svg` | [vehiclespecs](https://github.com/vehiclespecs/brand-logos/blob/main/nissan-logo.svg), 27 ноября 2026 года |
 | Omoda | `omoda.svg` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Omoda_wordmark.svg) |
 | Skoda | `skoda.svg` | [vehiclespecs](https://github.com/vehiclespecs/brand-logos/blob/main/skoda-logo.svg) |
 | Tank | `tank.svg` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Tank_(Great_Wall_Motor_brand)_logo,_Chinese_and_Russian_market.svg) |
