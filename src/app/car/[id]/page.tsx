@@ -10,7 +10,7 @@ import { powerRows } from "@/lib/power";
 import { CATALOG_AGE_SQL } from "@/lib/catalog-age";
 import { modelEquipment } from "@/lib/equipment";
 import CarEquipment from "@/components/car/CarEquipment";
-import { sellerDictionaryRevision } from "@/lib/seller-description";
+import { cleanSellerText, sellerDictionaryRevision } from "@/lib/seller-description";
 import CarTitle from "@/components/car/CarTitle";
 import { formatCarFullName, type CarTitleData } from "@/lib/car-title";
 import type { Metadata } from "next";
@@ -138,14 +138,14 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
     firstDisplayValue(spec?.fuel, car.fuel),
     spec?.power_hp,
   );
-  const sourceDescription = car.description?.trim();
+  const sourceDescription = cleanSellerText(car.description);
+  const publicTranslation = cleanSellerText(car.translated_description);
   const sellerDescription = sourceDescription
     ? {
-        text: car.translated_description ?? sourceDescription,
+        text: publicTranslation || sourceDescription,
         translated:
-          Boolean(car.translated_description) ||
-          !/[\u3400-\u9fff\uf900-\ufaff]/u.test(sourceDescription),
-        dictionary: Boolean(car.translated_description),
+          Boolean(publicTranslation) || !/[\u3400-\u9fff\uf900-\ufaff]/u.test(sourceDescription),
+        dictionary: Boolean(publicTranslation),
       }
     : null;
   const engineMl = [spec?.engine_ml, car.engine_ml].find(
@@ -329,6 +329,11 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
               Информация со слов продавца. Состояние автомобиля уточняйте при осмотре.
               {sellerDescription.dictionary && " Перевод с китайского; оригинал доступен ниже."}
             </p>
+            <p className="mb-4 border-l-2 border-orange-500 pl-3 font-body text-sm leading-relaxed text-gray-200">
+              Гарантия, кредит, обратный выкуп и другие условия продавца действуют при покупке
+              напрямую в Китае и не распространяются на покупку через{" "}
+              <span className="whitespace-nowrap">AVTOPODBOR IMPORT.</span>
+            </p>
             <div className="bg-graphite-800 rounded-xl p-5 text-gray-400 font-body text-sm">
               {sellerDescription.translated ? (
                 <p className="text-white leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">
@@ -343,7 +348,7 @@ export default async function CarPage({ params }: { params: Promise<{ id: string
                   <span className="hidden group-open:inline">Скрыть оригинал</span>
                 </summary>
                 <p className="mt-3 whitespace-pre-line [overflow-wrap:anywhere]">
-                  {car.description}
+                  {sourceDescription}
                 </p>
               </details>
             </div>

@@ -7,6 +7,11 @@ import os
 import re
 import sys
 
+try:
+    from seller_content import clean_seller_text, missing_numbers
+except ModuleNotFoundError:
+    from scripts.seller_content import clean_seller_text, missing_numbers
+
 DSN = os.environ.get("IMPORT_PG_DSN", "postgresql://postgres@/avtopodborimport?host=/var/run/postgresql")
 DICTIONARY = os.environ.get("SELLER_DICTIONARY", "/opt/avtopodborimport/seller-dictionary.json")
 CJK = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
@@ -25,15 +30,26 @@ def translate(original, dictionary):
     normalized = re.sub(r"\s+", "", re.sub(r"[。．.]+$", "", re.sub(r"[，,]", "，", text)))
     result = dictionary["descriptions"].get(normalized)
     if result:
-        return ("untranslated", None) if CJK.search(result) else ("dictionary", result)
+        return dictionary_result(original, result)
     if CJK.search(text):
         parts = [part for part in re.split(r"[，。；;、]+", normalized) if part]
         phrases = dictionary["phrases"]
         if parts and all(part in phrases for part in parts):
             result = " ".join(f"{phrases[part]}." for part in parts)
-            return ("untranslated", None) if CJK.search(result) else ("dictionary", result)
+            return dictionary_result(original, result)
         return "untranslated", None
     return "original", None
+
+
+def dictionary_result(source, result):
+    translated = clean_seller_text(result)
+    missing = missing_numbers(source, translated)
+    if missing:
+        print(json.dumps({"manual_review": hashlib.md5(source.encode("utf-8")).hexdigest(),
+                          "missing_numbers": missing}, ensure_ascii=False), file=sys.stderr)
+    if not translated or CJK.search(translated) or missing:
+        return "untranslated", None
+    return "dictionary", translated
 
 
 def main():

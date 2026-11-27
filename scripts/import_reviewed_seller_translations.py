@@ -11,7 +11,13 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 
+
+try:
+    from seller_content import clean_seller_text, missing_numbers
+except ModuleNotFoundError:
+    from scripts.seller_content import clean_seller_text, missing_numbers
 
 DSN = os.environ.get("IMPORT_PG_DSN", "postgresql://postgres@/avtopodborimport?host=/var/run/postgresql")
 CJK = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
@@ -20,16 +26,18 @@ LATIN = re.compile(r"[A-Za-z]")
 
 
 def read_complete_jsonl(path):
+    if str(path) == "-":
+        return [json.loads(line) for line in sys.stdin if line.strip()]
     with path.open(encoding="utf-8") as stream:
         return [json.loads(line) for line in stream if line.endswith("\n") and line.strip()]
 
 
-def prepare(rows):
+def prepare(rows, manual=None):
     ready = {}
-    rejected = {"not_checked": 0, "chinese_remaining": 0, "missing_russian": 0}
-    for row in rows:
+    rejected = {"not_checked": 0, "chinese_remaining": 0, "missing_russian": 0, "missing_numbers": 0, "editorial_comment": 0}
+    for row in {row.get("text", ""): row for row in rows}.values():
         source = row.get("text", "")
-        translated = row.get("ru", "").strip()
+        translated = clean_seller_text(row.get("ru"))
         if not row.get("qa_checked") or not source:
             rejected["not_checked"] += 1
             continue
@@ -41,6 +49,15 @@ def prepare(rows):
             rejected["missing_russian"] += 1
             continue
         source_hash = hashlib.md5(source.encode("utf-8")).hexdigest()
+        missing = missing_numbers(source, translated)
+        commentary = re.search(r"вопросительн|знак[а-я]*\s+вопроса", translated, re.I)
+        if missing or commentary:
+            rejected["missing_numbers" if missing else "editorial_comment"] += 1
+            if manual is not None:
+                manual.append({"source_hash": source_hash, "missing_numbers": missing,
+                               "editorial_comment": bool(commentary), "text": clean_seller_text(source),
+                               "ru": translated})
+            continue
         ready[source_hash] = (source_hash, source, translated)
     return list(ready.values()), rejected
 
@@ -49,8 +66,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("reviewed", type=Path)
     parser.add_argument("--apply", action="store_true", help="Записать в базу; без флага только проверить файл")
+    parser.add_argument("--manual-review", type=Path, help="JSONL со списком для ручной сверки")
     args = parser.parse_args()
-    rows, rejected = prepare(read_complete_jsonl(args.reviewed))
+    manual = []
+    rows, rejected = prepare(read_complete_jsonl(args.reviewed), manual)
+    for row in manual:
+        print(json.dumps({k: row[k] for k in ("source_hash", "missing_numbers", "editorial_comment")}, ensure_ascii=False))
+    if args.manual_review:
+        args.manual_review.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in manual), encoding="utf-8")
     print(json.dumps({"ready": len(rows), "rejected": rejected}, ensure_ascii=False), flush=True)
     if not args.apply or not rows:
         return

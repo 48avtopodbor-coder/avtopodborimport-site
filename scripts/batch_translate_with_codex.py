@@ -16,12 +16,16 @@ import tempfile
 import time
 
 
+try:
+    from seller_content import clean_seller_text, missing_numbers
+except ModuleNotFoundError:
+    from scripts.seller_content import clean_seller_text, missing_numbers
+
 ROOT = Path(__file__).resolve().parents[1]
 DICTIONARY = ROOT / "src/lib/seller-dictionary.json"
 CJK = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
 RUSSIAN = re.compile(r"[А-Яа-яЁё]")
 LATIN = re.compile(r"[A-Za-z]")
-NUMBERS = re.compile(r"\d+(?:[.,]\d+)?")
 SCHEMA = {
     "type": "object",
     "properties": {
@@ -53,11 +57,11 @@ def load_jsonl(path):
         return [json.loads(line) for line in stream if line.endswith("\n") and line.strip()]
 
 
-def select_batch(rows, completed, published, batch_size, max_chars):
+def select_batch(rows, completed, published, batch_size, max_chars, exact=False):
     candidates = []
     seen = set()
     for row in rows:
-        key = normalize(row["text"])
+        key = row["text"] if exact else normalize(row["text"])
         if key in completed or key in published or key in seen:
             continue
         seen.add(key)
@@ -82,8 +86,11 @@ def translate_batch(batch, codex, timeout, log_dir):
         "окраске, ДТП, пробеге, цене, дополнительных платежах, гарантии, ограничениях "
         "экспорта, названия, числа и единицы измерения. Заявления о состоянии машины "
         "передавай как слова продавца. Непонятный или оборванный текст обозначай честно. "
+        "Не переносить контакты и предложения связаться с продавцом напрямую. Удали рекламу экспортёров. "
+        "Знак ? внутри китайского текста — потерянный символ, не знак вопроса. Не комментировать. "
+        "Записывай исходные числа цифрами. Для 8万 допустимы 80 000 или 80 тыс. Сохраняй все числовые коды. "
         "Верни только JSON с translations: ровно по одному объекту id, ru для каждого id.\n\n"
-        + json.dumps([{"id": row["id"], "text": row["text"]} for row in batch], ensure_ascii=False)
+        + json.dumps([{"id": row["id"], "text": clean_seller_text(row["text"])} for row in batch], ensure_ascii=False)
     )
     with tempfile.TemporaryDirectory(prefix="avto-codex-translation-") as directory:
         base = Path(directory)
@@ -119,9 +126,7 @@ def validate(batch, response):
         issues = []
         if CJK.search(translated):
             issues.append("Китайские символы остались в переводе")
-        source_numbers = set(NUMBERS.findall(row["text"]))
-        translated_numbers = set(NUMBERS.findall(translated))
-        missing = sorted(source_numbers - translated_numbers)
+        missing = missing_numbers(row["text"], translated)
         if missing:
             issues.append("Проверить числа: " + ", ".join(missing))
         if len(row["text"]) > 150 and len(translated) < 30:
@@ -182,16 +187,20 @@ def main():
     parser.add_argument("--max-chars", type=int, default=12000)
     parser.add_argument("--max-batches", type=int, default=0, help="0 = до конца очереди")
     parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--exact-sources", action="store_true", help="Для повторного перевода по точному исходнику, включая известные словарю")
     args = parser.parse_args()
     if args.batch_size < 1 or args.max_chars < 1 or args.timeout < 1 or args.max_batches < 0:
         parser.error("Параметры размера и времени должны быть положительными")
     rows = load_jsonl(args.source)
     published = json.loads(DICTIONARY.read_text(encoding="utf-8"))["descriptions"]
-    done = {normalize(row["text"]) for row in load_jsonl(args.drafts)}
+    key = (lambda text: text) if args.exact_sources else normalize
+    if args.exact_sources:
+        published = {}
+    done = {key(row["text"]) for row in load_jsonl(args.drafts)}
     log_dir = args.drafts.parent / (args.drafts.stem + "-" + args.source.stem + "-logs")
     count = 0
     while args.max_batches == 0 or count < args.max_batches:
-        batch, remaining = select_batch(rows, done, published, args.batch_size, args.max_chars)
+        batch, remaining = select_batch(rows, done, published, args.batch_size, args.max_chars, args.exact_sources)
         if not batch:
             print("Все исходные описания обработаны", flush=True)
             break
@@ -203,7 +212,7 @@ def main():
             with args.drafts.open("a", encoding="utf-8") as stream:
                 for row in results:
                     stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-                    done.add(normalize(row["text"]))
+                    done.add(key(row["text"]))
                 stream.flush()
                 os.fsync(stream.fileno())
         print(f"Сохранено {len(results)}; требуют проверки чисел/остатка китайского: "
