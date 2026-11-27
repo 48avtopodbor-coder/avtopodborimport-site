@@ -1,0 +1,12 @@
+[Unit]
+Description=Check free space on the catalog site and collector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+UMask=0077
+StateDirectory=avtopodbor-disk-space
+StateDirectoryMode=0700
+TimeoutStartSec=100
+ExecStart=/usr/bin/python3 /opt/avtopodborimport/check_disk_space.py

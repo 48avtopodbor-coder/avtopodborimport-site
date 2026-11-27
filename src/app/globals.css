@@ -140,3 +140,73 @@
     }
   }
 }
+
+@layer components {
+  .home-price,
+  .home-arrivals {
+    hyphens: none;
+  }
+
+  .home-arrivals-all-top {
+    display: none;
+  }
+
+  /* Keep the viewport breakpoints at normal text size, including the scrollbar. */
+  @media (min-width: 640px) {
+    @container (min-width: calc(40rem - 20px)) {
+      .home-arrivals-all-top {
+        display: flex;
+      }
+
+      .home-arrivals-all-bottom {
+        display: none;
+      }
+
+      .home-arrivals .home-arrivals-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  }
+
+  @media (min-width: 768px) {
+    @container (min-width: calc(48rem - 20px)) {
+      .home-price .home-price-steps {
+        flex-direction: row;
+      }
+
+      .home-price .home-price-step {
+        min-width: auto;
+        flex-direction: column;
+      }
+    }
+  }
+
+  @media (min-width: 1024px) {
+    @container (min-width: calc(64rem - 20px)) {
+      .home-arrivals .home-arrivals-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+  }
+
+  @container (max-width: 17rem) {
+    .home-price,
+    .home-arrivals {
+      overflow-wrap: anywhere;
+      hyphens: manual;
+    }
+
+    .home-price .home-price-step {
+      flex-direction: column;
+    }
+
+    .home-price-step > :first-child {
+      padding: 16px;
+    }
+
+    .home-price > div,
+    .home-arrivals > div {
+      padding-inline: 16px;
+    }
+  }
+}
