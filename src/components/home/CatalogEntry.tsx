@@ -20,7 +20,7 @@ export default function CatalogEntry({ total }: { total: number | null }) {
               </div>
 
               <h2 className="font-heading font-bold text-2xl text-white mb-2">
-                С пробегом
+                С про&shy;бегом
                 <br />
                 из Китая
               </h2>

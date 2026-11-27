@@ -220,7 +220,7 @@
 
   @media (min-width: 640px) {
     @container (min-width: calc(40rem - 20px)) {
-      .home-buy-grid {
+      .home-buy .home-buy-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
@@ -228,10 +228,10 @@
 
   @media (min-width: 768px) {
     @container (min-width: calc(48rem - 20px)) {
-      .home-entry-grid {
+      .home-catalog-entry .home-entry-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-      .footer-grid {
+      .site-footer .footer-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
       .footer-about {
@@ -242,7 +242,7 @@
 
   @media (min-width: 1024px) {
     @container (min-width: calc(64rem - 20px)) {
-      .home-buy-grid {
+      .home-buy .home-buy-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
@@ -253,6 +253,16 @@
     .home-buy > div,
     .site-footer > div {
       padding-inline: 16px;
+    }
+    .home-catalog-entry,
+    .home-buy {
+      hyphens: manual;
+    }
+    .footer-about > div {
+      flex-wrap: wrap;
+    }
+    .footer-about > div > span {
+      font-size: min(0.875rem, 8cqi);
     }
     .home-entry-grid > a,
     .home-buy a {
