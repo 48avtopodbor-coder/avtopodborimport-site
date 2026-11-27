@@ -1,6 +1,7 @@
 #!/bin/sh
 # Использует словарь из работающей версии сайта и ограничивает нагрузку на сервер.
 set -eu
+echo "$(date -Is) начало обработки переводов"
 
 temporary=$(mktemp /opt/avtopodborimport/seller-dictionary.XXXXXXXX)
 cleanup() {
@@ -26,6 +27,7 @@ nice -n 15 sudo -u postgres python3 \
   /opt/avtopodborimport/translate_seller_descriptions.py --limit 2000
 
 nice -n 15 sudo -u postgres python3 /opt/avtopodborimport/refresh_catalog_queue.py
+echo "$(date -Is) обработка очередей переводов завершена"
 
 # Keep a read-only report of electric model names and rated range.
 if ! sh /opt/avtopodborimport/run_electric_catalog_audit.sh; then

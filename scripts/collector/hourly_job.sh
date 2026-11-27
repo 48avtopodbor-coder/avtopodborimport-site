@@ -6,6 +6,17 @@
 cd /home/c/cc14862/che168 || exit 1
 PY=/home/c/cc14862/che168/.venv/bin/python
 echo "=== $(date '+%Y-%m-%d %H:%M') запуск по расписанию"
-$PY scraper.py --no-details --every 660 && $PY enrich.py --recheck
-$PY details.py --minutes 50
-echo "=== $(date '+%Y-%m-%d %H:%M') готово"
+list_rc=0
+recheck_rc=0
+details_rc=0
+$PY scraper.py --no-details --every 660 || list_rc=$?
+if [ "$list_rc" -eq 0 ]; then
+    $PY enrich.py --recheck || recheck_rc=$?
+fi
+$PY details.py --minutes 50 || details_rc=$?
+# The collector returns 10 when a full list pass is not due yet.
+if { [ "$list_rc" -ne 0 ] && [ "$list_rc" -ne 10 ]; } || [ "$recheck_rc" -ne 0 ] || [ "$details_rc" -ne 0 ]; then
+    echo "=== $(date '+%Y-%m-%d %H:%M') ошибка: список=$list_rc перепроверка=$recheck_rc карточки=$details_rc"
+    exit 1
+fi
+echo "=== $(date '+%Y-%m-%d %H:%M') готово (список=$list_rc перепроверка=$recheck_rc карточки=$details_rc)"

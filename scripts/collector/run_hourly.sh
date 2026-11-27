@@ -5,7 +5,10 @@ cd /home/c/cc14862/che168 || exit 1
 if [ -f data/cron.log ] && [ "$(stat -c %s data/cron.log)" -gt 20000000 ]; then
     mv data/cron.log data/cron.log.old
 fi
-/usr/bin/flock -n -E 75 data/.lock /bin/sh hourly_job.sh >> data/cron.log 2>&1
-if [ $? -eq 75 ]; then
+rc=0
+/usr/bin/flock -n -E 75 data/.lock /bin/sh hourly_job.sh >> data/cron.log 2>&1 || rc=$?
+if [ "$rc" -eq 75 ]; then
     echo "$(date '+%Y-%m-%d %H:%M') прошлый запуск ещё идёт — пропуск" >> data/cron.log
+    exit 0
 fi
+exit "$rc"

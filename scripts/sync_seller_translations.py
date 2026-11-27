@@ -55,6 +55,11 @@ def main():
     source.write_text(
         "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in data["descriptions"])
     )
+    if not data["descriptions"]:
+        record("completed")
+        print("Новых описаний для перевода нет.")
+        print("Catalog terms needing editorial mapping:", len(data["terms"]))
+        return
     scripts = Path(__file__).resolve().parent
     for name, args in [
         ("batch_translate_with_codex.py", [source, drafts] + (["--exact-sources"] if a.question_comments else [])),

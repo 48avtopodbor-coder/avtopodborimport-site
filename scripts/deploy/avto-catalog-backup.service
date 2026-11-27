@@ -1,0 +1,12 @@
+[Unit]
+Description=Off-site backups of catalog PostgreSQL and collector SQLite
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+UMask=0077
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=90min
+ExecStart=/bin/bash /opt/avtopodborimport/backup_catalog.sh
