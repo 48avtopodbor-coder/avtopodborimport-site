@@ -210,3 +210,53 @@
     }
   }
 }
+
+@layer components {
+  .home-catalog-entry,
+  .home-buy,
+  .site-footer {
+    overflow-wrap: anywhere;
+  }
+
+  @media (min-width: 640px) {
+    @container (min-width: calc(40rem - 20px)) {
+      .home-buy-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  }
+
+  @media (min-width: 768px) {
+    @container (min-width: calc(48rem - 20px)) {
+      .home-entry-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .footer-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .footer-about {
+        grid-column: span 2 / span 2;
+      }
+    }
+  }
+
+  @media (min-width: 1024px) {
+    @container (min-width: calc(64rem - 20px)) {
+      .home-buy-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+  }
+
+  @container (max-width: 17rem) {
+    .home-catalog-entry > div,
+    .home-buy > div,
+    .site-footer > div {
+      padding-inline: 16px;
+    }
+    .home-entry-grid > a,
+    .home-buy a {
+      padding-inline: 16px;
+    }
+  }
+}

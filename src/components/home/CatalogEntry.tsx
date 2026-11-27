@@ -3,9 +3,9 @@ import { formatCarCount } from "@/lib/format";
 
 export default function CatalogEntry({ total }: { total: number | null }) {
   return (
-    <section className="bg-graphite-900 py-6 pb-16">
+    <section className="home-catalog-entry bg-graphite-900 py-6 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="home-entry-grid grid grid-cols-1 gap-4">
           {/* С пробегом — основной */}
           <Link
             href="/catalog/used"
@@ -15,7 +15,7 @@ export default function CatalogEntry({ total }: { total: number | null }) {
 
             <div className="relative">
               <div className="inline-flex items-center gap-2 bg-orange-500/10 text-orange-500 font-body text-xs font-semibold px-3 py-1 rounded-full mb-4">
-                <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
+                <span className="shrink-0 w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse" />
                 {total === null ? "Автомобили" : formatCarCount(total)} в продаже
               </div>
 
