@@ -11,7 +11,7 @@ const STEPS = [
   },
   {
     num: "03",
-    title: "Подписываете договор",
+    title: "Подпи­сываете договор",
     desc: "Работаем официально. Договор с фиксированной ценой и сроком — ваша гарантия.",
   },
   {
@@ -23,7 +23,7 @@ const STEPS = [
 
 export default function HowToBuy() {
   return (
-    <section className="bg-graphite-800/30 py-16 divider-orange">
+    <section className="home-buy bg-graphite-800/30 py-16 divider-orange">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <p className="text-orange-500 font-heading text-xs uppercase tracking-widest mb-3">
@@ -34,7 +34,7 @@ export default function HowToBuy() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="home-buy-grid grid grid-cols-1 gap-6">
           {STEPS.map((step) => (
             <div key={step.num} className="relative">
               <div className="font-heading font-bold text-5xl text-white/5 mb-3 leading-none">
@@ -49,8 +49,8 @@ export default function HowToBuy() {
         {/* CTA */}
         <div className="mt-12 text-center">
           <a
-            href="#contact"
-            className="inline-flex items-center gap-3 bg-orange-500 hover:bg-orange-600 text-white font-body font-bold text-base px-8 py-4 rounded-xl transition-colors"
+            href="tel:+79006006515"
+            className="inline-flex max-w-full items-center gap-3 bg-orange-500 hover:bg-orange-600 text-white font-body font-bold text-base px-8 py-4 rounded-xl transition-colors"
           >
             Получить консультацию бесплатно
           </a>
