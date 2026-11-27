@@ -25,7 +25,7 @@ test("переводит смешанное объявление целиком 
     "Здравствуйте!Мы—профессиональнаякомпанияпоэкспортуавтомобилей.Всеавтомобилиявляютсянашимсобственнымтоваром.Есливасзаинтересуетэтотавтомобиль，свяжитесьснами，мыможемдоставитьеговуказанноевамиместо.原版原漆！支持任何第三方检测！！欢迎下单验车！全国物流！Hello，boss.Ifyouareinterestedinthiscar，pleasecontactmeintime.Wecansendittoyourlocation",
   );
   assert.equal(result.dictionary, true);
-  assert.match(result.text, /экспортом автомобилей/);
+  assert.doesNotMatch(result.text, /экспортом автомобилей|свяжитесь|hello.*boss/i);
   assert.match(result.text, /краска заводская/);
   assert.match(result.text, /сторонняя проверка/);
   assert.match(result.text, /доставка по Китаю/);
@@ -88,4 +88,14 @@ test("сохраняет следы окраски и среднюю оценк�
   assert.equal(result.dictionary, true);
   assert.match(result.text, /следы окраски/);
   assert.match(result.text, /как среднее/);
+});
+
+test("очищает публичный текст и сохраняет факты об автомобиле", () => {
+  const cases = JSON.parse(fs.readFileSync(path.join(directory, "seller-content-cases.json"), "utf8"));
+  for (const [source, facts, removed] of cases) {
+    const publicText = compiled.exports.cleanSellerText(source);
+    for (const fact of facts) assert.ok(publicText.includes(fact), fact);
+    for (const contact of removed) assert.ok(!publicText.includes(contact), contact);
+    assert.equal(compiled.exports.cleanSellerText(publicText), publicText);
+  }
 });

@@ -4,6 +4,7 @@ Uses the existing SSH alias and signed-in Codex CLI; credentials stay on the wor
 """
 
 import argparse
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import subprocess
@@ -23,16 +24,25 @@ def main():
         required=True,
         help="Persistent directory for resumable drafts and review",
     )
+    p.add_argument("--question-comments", action="store_true", help="Перевести заново описания со служебной пометкой о знаке вопроса")
     a = p.parse_args()
     if a.server.startswith("-"):
         p.error("Invalid SSH target")
     a.work_dir.mkdir(parents=True, exist_ok=True)
+    run_log = a.work_dir / "sync-history.jsonl"
+
+    def record(event):
+        with run_log.open("a", encoding="utf-8") as log:
+            print(json.dumps({"event": event, "at": datetime.now(timezone.utc).isoformat(),
+                              "question_comments": a.question_comments}), file=log)
+
+    record("started")
     remote = "/opt/avtopodborimport"
     output = subprocess.check_output(
         [
             "ssh",
             a.server,
-            "sudo -u postgres python3 " + remote + "/export_translation_work.py",
+            "sudo -u postgres python3 " + remote + "/export_translation_work.py" + (" --question-comments" if a.question_comments else ""),
         ]
     )
     data = json.loads(output)
@@ -47,27 +57,33 @@ def main():
     )
     scripts = Path(__file__).resolve().parent
     for name, args in [
-        ("batch_translate_with_codex.py", [source, drafts]),
+        ("batch_translate_with_codex.py", [source, drafts] + (["--exact-sources"] if a.question_comments else [])),
         ("review_codex_translations.py", [drafts, reviewed]),
         ("clean_reviewed_chinese.py", [reviewed]),
     ]:
         subprocess.run(
             [sys.executable, str(scripts / name), *[str(x) for x in args]], check=True
         )
-    target = "/tmp/avto-reviewed-import.jsonl"
-    subprocess.run(["scp", str(reviewed), a.server + ":" + target], check=True)
-    subprocess.run(
-        [
-            "ssh",
-            a.server,
-            "sudo -u postgres python3 "
-            + remote
-            + "/import_reviewed_seller_translations.py "
-            + target
-            + " --apply",
-        ],
-        check=True,
-    )
+    # Work directories are resumable. Only publish rows selected for this run.
+    selected = {row["text"] for row in data["descriptions"]}
+    if selected:
+        from import_reviewed_seller_translations import prepare, read_complete_jsonl
+
+        current = [r for r in read_complete_jsonl(reviewed) if r["text"] in selected]
+        missing = selected - {r["text"] for r in current}
+        if a.question_comments and missing:
+            raise RuntimeError(f"Отсутствуют проверенные переводы: {len(missing)}")
+        manual = []
+        prepare(current, manual)
+        (a.work_dir / "manual-review.jsonl").write_text(
+            "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in manual), encoding="utf-8"
+        )
+        payload = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in current)
+        subprocess.run(
+            ["ssh", a.server, "sudo -u postgres python3 " + remote + "/import_reviewed_seller_translations.py - --apply"],
+            input=payload, text=True, check=True,
+        )
+    record("completed")
     print("Catalog terms needing editorial mapping:", len(data["terms"]))
 
 

@@ -15,6 +15,11 @@ import subprocess
 import tempfile
 
 
+try:
+    from seller_content import clean_seller_text, missing_numbers
+except ModuleNotFoundError:
+    from scripts.seller_content import clean_seller_text, missing_numbers
+
 CJK = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
 RUSSIAN = re.compile(r"[А-Яа-яЁё]")
 UNSPECIFIED_TWO_WHEEL_DRIVE = "两驱"
@@ -107,6 +112,7 @@ def apply_corrections(batch, response):
             result["qa_correction"] = correction["reason"].strip()
         result["qa_checked"] = True
         result["qa_unresolved_cjk"] = bool(CJK.search(result["ru"]))
+        result["qa_missing_numbers"] = missing_numbers(result["text"], result["ru"])
         checked.append(normalize_ambiguous_drive(result))
     return checked
 
@@ -119,13 +125,17 @@ def review_batch(batch, codex, timeout, log_dir):
         "дефекты, ремонты, окраску, ДТП, пробег, цены, платежи, ограничения экспорта, "
         "гарантии, сроки и числа. Проверяй полноту описания. Помни: 两驱 означает "
         "привод на одну ось, но сам по себе не указывает, переднюю или заднюю. "
-        "Исправляй только те id, "
+        "Не переносить контакты и предложения связаться с продавцом напрямую. Удали рекламу экспортёров. "
+        "Знак ? внутри китайского текста — потерянный символ, не знак вопроса. Не комментировать. "
+        "Записывай исходные числа цифрами. Для 8万 допустимы 80 000 или 80 тыс. Сохраняй все числовые коды. "
+        "Проверь каждую пометку issues. Исправляй только те id, "
         "где действительно есть смысловая ошибка; верни для них ПОЛНЫЙ исправленный "
         "русский текст и краткую причину. Если источник неясен, честно укажи, что "
         "формулировка неясна. Не оставляй китайские символы в русском тексте. "
         "Для правильных переводов ничего не возвращай. Ответ только JSON с corrections.\n\n"
         + json.dumps(
-            [{"id": row["id"], "cn": row["text"], "ru": row["ru"]} for row in batch],
+            [{"id": row["id"], "cn": clean_seller_text(row["text"]), "ru": clean_seller_text(row["ru"]),
+              "issues": row.get("issues", [])} for row in batch],
             ensure_ascii=False,
         )
     )
