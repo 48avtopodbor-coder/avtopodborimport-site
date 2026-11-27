@@ -16,7 +16,7 @@ export default async function HomePage() {
   });
 
   return (
-    <main className="min-h-screen bg-graphite-900">
+    <main className="min-h-screen bg-graphite-900 [container-type:inline-size]">
       <Header />
       <HeroSearch total={total} priceAvailable={priceAvailable} />
       <CatalogEntry total={total} />
